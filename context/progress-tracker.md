@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature spec `05-prisma` implemented. Ready for the next unit.
+- Feature spec `07-wire-editor-home` implemented and verified with a production build.
 
 ## Completed
 
@@ -43,6 +43,17 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `lib/prisma.ts` singleton Prisma client with URL-based branching: Accelerate path for `prisma+postgres://`, `@prisma/adapter-pg` path otherwise.
   - Updated `prisma/schema.prisma` generator to `prisma-client-js` to generate and consume `@prisma/client`.
   - Created and applied initial migration for project/collaborator data model.
+- Feature spec `06-project-apis` implemented:
+  - Added `app/api/projects/route.ts` with authenticated `GET` and `POST` handlers for owner-scoped project listing and creation.
+  - `POST /api/projects` defaults missing or empty `name` to `Untitled Project`.
+  - Added `app/api/projects/[projectId]/route.ts` with authenticated `PATCH` and `DELETE` handlers.
+  - Enforced owner-only mutations for rename/delete with explicit `401` (unauthenticated) and `403` (non-owner) responses.
+- Feature spec `07-wire-editor-home` implemented:
+  - Converted `app/editor/page.tsx` into a server component and moved interactive UI wiring into `components/editor/editor-home-client.tsx`.
+  - Added `lib/project-data.ts` helper to fetch owned and shared projects server-side for the editor sidebar.
+  - Added `hooks/use-project-actions.ts` to manage create/rename/delete dialogs and API mutations against `/api/projects`.
+  - Wired create flow to generate `roomId` preview, create projects with aligned `project.id` and room ID, and navigate to `/editor/{projectId}`.
+  - Wired rename/delete flows to call API mutations and refresh, with delete redirecting to `/editor` when the active workspace is deleted.
 
 ## In Progress
 
@@ -50,7 +61,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Begin the next feature unit on top of Prisma-backed project persistence.
+- Begin the next feature unit on top of wired editor home project actions and workspace navigation flow.
 
 ## Open Questions
 
@@ -86,3 +97,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - Added create-project validation in `use-project-dialogs` to block submit when slug sanitization results in an empty value.
 - Updated create-project dialog UI to disable submit/Enter when slug is empty and show inline guidance when the entered name cannot produce a valid slug.
 - Implemented `05-prisma`: added project/collaborator Prisma models with status enum, created cached `lib/prisma.ts` singleton with Accelerate vs `@prisma/adapter-pg` branching based on `DATABASE_URL`, and applied the first migration with client generation.
+- Implemented `06-project-apis`: added `/api/projects` (`GET`/`POST`) and `/api/projects/[projectId]` (`PATCH`/`DELETE`) route handlers with Clerk auth checks, owner-only mutation enforcement, default create name behavior (`Untitled Project`), and build verification.
+- Refactored duplicated API `401` response helper into shared `lib/http-responses.ts` and reused it across both project route handlers.
+- Expanded `lib/http-responses.ts` into a shared API error response toolkit (`400`, `401`, `403`, `404`, `409`, `422`, `500`) and switched project mutation routes to use shared helpers.
+- Implemented `07-wire-editor-home`: server-fetched owned/shared sidebar projects, API-backed create/rename/delete actions, room ID preview on create, and workspace navigation/redirect handling.
+- Fixed editor runtime startup issues from `current-issue.md`: mapped `ProjectCollaborator.email` to existing DB column `collaboratorEmail`, switched shared-project lookup to collaborator-first query flow, and normalized pg adapter SSL mode to `verify-full` to remove the startup security warning. Verified with `npm run dev` (`GET /editor 200`).

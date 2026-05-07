@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Implement feature spec `03-auth` Clerk authentication integration.
+- Feature spec `04-project-dialogs` implemented. Ready for the next unit.
 
 ## Completed
 
@@ -30,6 +30,14 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added root `proxy.ts` (Next.js 16 convention) with protected-by-default routing and public route matching for sign-in/sign-up URLs.
   - Updated `app/page.tsx` to redirect authenticated users to `/editor` and unauthenticated users to `/sign-in` (or configured Clerk sign-in URL).
   - Moved editor chrome to `app/editor/page.tsx` and added Clerk `UserButton` to `components/editor/editor-navbar.tsx`.
+- Feature spec `04-project-dialogs` implemented:
+  - Added editor home screen with heading, description, and `New Project` button in the center of `/editor`.
+  - Created `hooks/use-project-dialogs.ts` hook managing dialog state, form state, loading state, and mock project data.
+  - Added `components/editor/create-project-dialog.tsx` with name input and live slug preview.
+  - Added `components/editor/rename-project-dialog.tsx` with prefilled input, auto-focus, and Enter-to-submit.
+  - Added `components/editor/delete-project-dialog.tsx` with destructive confirmation styling.
+  - Updated `components/editor/project-sidebar.tsx` with project item list, rename/delete actions for owned projects, hidden actions for shared projects, and mobile backdrop scrim.
+  - Wired all dialogs: editor home `New Project` → Create, sidebar `New Project` → Create, sidebar rename → Rename, sidebar delete → Delete.
 
 ## In Progress
 
@@ -37,7 +45,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Begin the next feature unit on top of authenticated editor access.
+- Begin the next feature unit on top of project dialogs and sidebar actions.
 
 ## Open Questions
 
@@ -65,3 +73,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - Increased form card border contrast after darkening background by switching Clerk card border to `--border-subtle`.
 - Refactored sign-in/sign-up pages to use shared `components/auth/auth-page-shell.tsx`, leaving route files focused on form component + props data only.
 - Fixed post-logout redirect/render flow by forcing Clerk auth URLs to local routes and setting explicit `afterSignOutUrl` to `/sign-in`.
+- Implemented `04-project-dialogs`: editor home screen, three project dialogs (create with slug preview, rename with prefilled input, delete with destructive confirm), sidebar project list with per-item actions, and mobile backdrop scrim. All verified with `tsc`, `eslint`, and `next build`.
+- Increased project dialog text contrast by using stronger copy tokens in the dialog shell and explicit high-contrast input/slug styling.
+- Increased project dialog title size and forced the title color to the primary white copy token.
+- Added cancellation guards in `use-project-dialogs` so closing a dialog cancels in-flight mock submit updates and prevents stale project state writes after user cancel.
+- Added submit re-entrancy guards in `use-project-dialogs` (`if (isSubmitting) return`) with minimal submit lifecycle cleanup to avoid duplicate rapid-fire project mutations.
+- Added create-project validation in `use-project-dialogs` to block submit when slug sanitization results in an empty value.
+- Updated create-project dialog UI to disable submit/Enter when slug is empty and show inline guidance when the entered name cannot produce a valid slug.

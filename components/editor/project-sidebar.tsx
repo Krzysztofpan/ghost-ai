@@ -1,20 +1,21 @@
 "use client"
 
 import { PanelLeftClose, Pencil, Plus, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import type { MockProject } from "@/hooks/use-project-dialogs"
+import type { ProjectListItem } from "@/hooks/use-project-actions"
 
 interface ProjectSidebarProps {
   isOpen: boolean
   onClose: () => void
-  ownedProjects: MockProject[]
-  sharedProjects: MockProject[]
+  ownedProjects: ProjectListItem[]
+  sharedProjects: ProjectListItem[]
   onCreateProject: () => void
-  onRenameProject: (project: MockProject) => void
-  onDeleteProject: (project: MockProject) => void
+  onRenameProject: (project: ProjectListItem) => void
+  onDeleteProject: (project: ProjectListItem) => void
 }
 
 function ProjectItem({
@@ -23,14 +24,22 @@ function ProjectItem({
   onRename,
   onDelete,
 }: {
-  project: MockProject
+  project: ProjectListItem
   showActions: boolean
   onRename: () => void
   onDelete: () => void
 }) {
+  const router = useRouter()
+
   return (
     <div className="group flex items-center justify-between rounded-xl px-3 py-2 text-sm text-copy-secondary transition-colors hover:bg-subtle hover:text-copy-primary">
-      <span className="truncate">{project.name}</span>
+      <button
+        type="button"
+        className="truncate text-left"
+        onClick={() => router.push(`/editor/${encodeURIComponent(project.id)}`)}
+      >
+        {project.name}
+      </button>
       {showActions && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <Button

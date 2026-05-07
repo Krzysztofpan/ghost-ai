@@ -7,6 +7,22 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is not set")
 }
 
+function normalizeSslMode(url: string): string {
+  try {
+    const parsed = new URL(url)
+    const sslMode = parsed.searchParams.get("sslmode")
+
+    if (sslMode === "prefer" || sslMode === "require" || sslMode === "verify-ca") {
+      parsed.searchParams.set("sslmode", "verify-full")
+      return parsed.toString()
+    }
+  } catch {
+    // Keep original URL if parsing fails.
+  }
+
+  return url
+}
+
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient
 }
@@ -17,11 +33,8 @@ const createPrismaClient = () => {
     return new PrismaClient()
   }
 
-  const adapter = new PrismaPg(databaseUrl)
+  const adapter = new PrismaPg({ connectionString: normalizeSslMode(databaseUrl) })
   return new PrismaClient({ adapter })
 }
 
-export const prisma =
-  process.env.NODE_ENV === "production"
-    ? createPrismaClient()
-    : (globalForPrisma.prisma ??= createPrismaClient())
+export const prisma = process.env.NODE_ENV === "production" ? createPrismaClient() : (globalForPrisma.prisma ??= createPrismaClient())

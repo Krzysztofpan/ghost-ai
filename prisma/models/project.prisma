@@ -21,11 +21,11 @@ model Project {
 model ProjectCollaborator {
   id                String   @id @default(cuid())
   projectId         String
-  email             String
+  email             String   @map("collaboratorEmail")
   createdAt         DateTime @default(now())
   project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, email])
-  @@index([email])
+  @@unique([projectId, email], map: "ProjectCollaborator_projectId_collaboratorEmail_key")
+  @@index([email], map: "ProjectCollaborator_collaboratorEmail_idx")
   @@index([projectId, createdAt])
 }

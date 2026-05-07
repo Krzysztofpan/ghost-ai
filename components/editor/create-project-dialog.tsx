@@ -12,7 +12,7 @@ interface CreateProjectDialogProps {
   onClose: () => void
   name: string
   onNameChange: (value: string) => void
-  slug: string
+  roomId: string
   isSubmitting: boolean
   onSubmit: () => void
 }
@@ -22,12 +22,12 @@ export function CreateProjectDialog({
   onClose,
   name,
   onNameChange,
-  slug,
+  roomId,
   isSubmitting,
   onSubmit,
 }: CreateProjectDialogProps) {
   const trimmedName = name.trim()
-  const canSubmit = Boolean(trimmedName) && Boolean(slug) && !isSubmitting
+  const canSubmit = Boolean(trimmedName) && Boolean(roomId) && !isSubmitting
 
   return (
     <Dialog
@@ -76,15 +76,15 @@ export function CreateProjectDialog({
               className="border-surface-border-subtle bg-surface text-copy-primary placeholder:text-copy-muted"
             />
           </div>
-          {slug && (
+          {roomId && (
             <p className="text-xs text-copy-secondary">
-              Slug:{" "}
-              <span className="font-mono text-brand">{slug}</span>
+              Room ID:{" "}
+              <span className="font-mono text-brand">{roomId}</span>
             </p>
           )}
-          {trimmedName && !slug && (
+          {trimmedName && !roomId && (
             <p className="text-xs text-destructive">
-              Project name must contain at least one letter or number to generate a slug.
+              Project name must contain at least one letter or number to generate a room ID.
             </p>
           )}
         </div>

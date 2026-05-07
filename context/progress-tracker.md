@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature spec `04-project-dialogs` implemented. Ready for the next unit.
+- Feature spec `05-prisma` implemented. Ready for the next unit.
 
 ## Completed
 
@@ -38,6 +38,11 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `components/editor/delete-project-dialog.tsx` with destructive confirmation styling.
   - Updated `components/editor/project-sidebar.tsx` with project item list, rename/delete actions for owned projects, hidden actions for shared projects, and mobile backdrop scrim.
   - Wired all dialogs: editor home `New Project` → Create, sidebar `New Project` → Create, sidebar rename → Rename, sidebar delete → Delete.
+- Feature spec `05-prisma` implemented:
+  - Added `prisma/models/project.prisma` with `ProjectStatus`, `Project`, and `ProjectCollaborator` models, relations, and required indexes/constraints.
+  - Added `lib/prisma.ts` singleton Prisma client with URL-based branching: Accelerate path for `prisma+postgres://`, `@prisma/adapter-pg` path otherwise.
+  - Updated `prisma/schema.prisma` generator to `prisma-client-js` to generate and consume `@prisma/client`.
+  - Created and applied initial migration for project/collaborator data model.
 
 ## In Progress
 
@@ -45,7 +50,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Begin the next feature unit on top of project dialogs and sidebar actions.
+- Begin the next feature unit on top of Prisma-backed project persistence.
 
 ## Open Questions
 
@@ -80,3 +85,4 @@ Update this file whenever the current phase, active feature, or implementation s
 - Added submit re-entrancy guards in `use-project-dialogs` (`if (isSubmitting) return`) with minimal submit lifecycle cleanup to avoid duplicate rapid-fire project mutations.
 - Added create-project validation in `use-project-dialogs` to block submit when slug sanitization results in an empty value.
 - Updated create-project dialog UI to disable submit/Enter when slug is empty and show inline guidance when the entered name cannot produce a valid slug.
+- Implemented `05-prisma`: added project/collaborator Prisma models with status enum, created cached `lib/prisma.ts` singleton with Accelerate vs `@prisma/adapter-pg` branching based on `DATABASE_URL`, and applied the first migration with client generation.

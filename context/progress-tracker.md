@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature spec `07-wire-editor-home` implemented and verified with a production build.
+- Feature spec `09-share-dialog` implemented and verified with lint and production build checks.
 
 ## Completed
 
@@ -54,6 +54,18 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `hooks/use-project-actions.ts` to manage create/rename/delete dialogs and API mutations against `/api/projects`.
   - Wired create flow to generate `roomId` preview, create projects with aligned `project.id` and room ID, and navigate to `/editor/{projectId}`.
   - Wired rename/delete flows to call API mutations and refresh, with delete redirecting to `/editor` when the active workspace is deleted.
+- Feature spec `08-editor-workspace-shell` implemented:
+  - Added server route `app/editor/[roomId]/page.tsx` with auth redirect to `/sign-in`.
+  - Added `lib/project-access.ts` to resolve current Clerk identity (`userId` + primary email) and enforce project owner/collaborator access checks.
+  - Added `components/editor/access-denied.tsx` and used it for both missing and unauthorized projects.
+  - Added `components/editor/workspace-shell-client.tsx` full-viewport workspace shell: top navbar (project name, share button, AI sidebar toggle), left project sidebar, center canvas placeholder, and right AI placeholder panel.
+  - Updated `components/editor/project-sidebar.tsx` to support current project highlighting via `activeProjectId`.
+- Feature spec `09-share-dialog` implemented:
+  - Added `app/api/projects/[projectId]/collaborators/route.ts` with authenticated collaborator listing, owner-only invite/remove mutations, and access checks for owner/collaborator viewers.
+  - Added Clerk Backend API enrichment for collaborator identities (name + avatar by email) with email fallback when no Clerk user exists.
+  - Added `hooks/use-share-dialog.ts` to manage share dialog state, collaborator fetch/mutations, invite input, and temporary copy-link feedback.
+  - Added `components/editor/share-dialog.tsx` with owner invite/remove controls and read-only collaborator list for non-owners.
+  - Wired share dialog opening from `components/editor/workspace-shell-client.tsx` and project ownership gating via `isOwner` returned from `lib/project-access.ts`.
 
 ## In Progress
 
@@ -61,7 +73,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Begin the next feature unit on top of wired editor home project actions and workspace navigation flow.
+- Begin the next feature unit on top of workspace sharing, likely real-time room/canvas behavior integration.
 
 ## Open Questions
 
@@ -102,3 +114,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - Expanded `lib/http-responses.ts` into a shared API error response toolkit (`400`, `401`, `403`, `404`, `409`, `422`, `500`) and switched project mutation routes to use shared helpers.
 - Implemented `07-wire-editor-home`: server-fetched owned/shared sidebar projects, API-backed create/rename/delete actions, room ID preview on create, and workspace navigation/redirect handling.
 - Fixed editor runtime startup issues from `current-issue.md`: mapped `ProjectCollaborator.email` to existing DB column `collaboratorEmail`, switched shared-project lookup to collaborator-first query flow, and normalized pg adapter SSL mode to `verify-full` to remove the startup security warning. Verified with `npm run dev` (`GET /editor 200`).
+- Implemented `08-editor-workspace-shell`: added `/editor/[roomId]` server access checks with redirect/denied flows, extracted project access helpers into `lib/project-access.ts`, and shipped the initial workspace shell UI (project-aware navbar, highlighted sidebar project, canvas placeholder, AI sidebar placeholder).
+- Updated `proxy.ts` unauthenticated guard to pass `unauthenticatedUrl` explicitly to Clerk `auth.protect()`, forcing local `/sign-in` redirects instead of hosted Clerk sign-in URLs with stale `redirect_url` values.
+- Increased Clerk sign-in/sign-up border visibility by adding explicit border overrides for form inputs, social auth buttons, card edges, and divider lines in `app/layout.tsx` appearance config.
+- Tuned Clerk auth form shadows to a soft white glow on card, inputs, and social buttons for clearer edge visibility on the dark background.
+- Moved auth shadow emphasis to the outer Clerk form container (`cardBox`) so the glow wraps the full form on every side (top/left/right/bottom), while keeping inner card shadow disabled.
+- Updated auth shadow color layering: outer wrapper (`cardBox`) now uses blue brand glow, while inner form surface (`card`) uses a soft white inset/ambient shadow.
+- Adjusted inner auth form white shadow to bottom-only emphasis on `card`, removing top/side white glow.
+- Added explicit Clerk auth success redirect targets in `app/layout.tsx` (`signIn/signUp` force and fallback URLs all set to `/editor`) to prevent post-verification redirect churn back to `/sign-in`.
+- Implemented `09-share-dialog`: added owner-managed collaborator APIs with Clerk profile enrichment, added workspace share dialog UI + hook, enforced read-only collaborator view for non-owners, and wired temporary `Copied!` project-link feedback.

@@ -13,6 +13,7 @@ interface ProjectSidebarProps {
   onClose: () => void
   ownedProjects: ProjectListItem[]
   sharedProjects: ProjectListItem[]
+  activeProjectId?: string
   onCreateProject: () => void
   onRenameProject: (project: ProjectListItem) => void
   onDeleteProject: (project: ProjectListItem) => void
@@ -20,11 +21,13 @@ interface ProjectSidebarProps {
 
 function ProjectItem({
   project,
+  isActive,
   showActions,
   onRename,
   onDelete,
 }: {
   project: ProjectListItem
+  isActive: boolean
   showActions: boolean
   onRename: () => void
   onDelete: () => void
@@ -32,7 +35,14 @@ function ProjectItem({
   const router = useRouter()
 
   return (
-    <div className="group flex items-center justify-between rounded-xl px-3 py-2 text-sm text-copy-secondary transition-colors hover:bg-subtle hover:text-copy-primary">
+    <div
+      className={cn(
+        "group flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
+        isActive
+          ? "bg-accent-dim text-copy-primary"
+          : "text-copy-secondary hover:bg-subtle hover:text-copy-primary"
+      )}
+    >
       <button
         type="button"
         className="truncate text-left"
@@ -73,6 +83,7 @@ export function ProjectSidebar({
   onClose,
   ownedProjects,
   sharedProjects,
+  activeProjectId,
   onCreateProject,
   onRenameProject,
   onDeleteProject,
@@ -132,6 +143,7 @@ export function ProjectSidebar({
                   <ProjectItem
                     key={project.id}
                     project={project}
+                    isActive={project.id === activeProjectId}
                     showActions={true}
                     onRename={() => onRenameProject(project)}
                     onDelete={() => onDeleteProject(project)}
@@ -155,6 +167,7 @@ export function ProjectSidebar({
                   <ProjectItem
                     key={project.id}
                     project={project}
+                    isActive={project.id === activeProjectId}
                     showActions={false}
                     onRename={() => {}}
                     onDelete={() => {}}

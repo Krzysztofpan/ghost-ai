@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 export interface CollaboratorListItem {
   email: string
@@ -23,6 +23,15 @@ export function useShareDialog(projectId: string, canManageAccessByRole: boolean
   const [canManageAccess, setCanManageAccess] = useState(canManageAccessByRole)
   const [copyFeedback, setCopyFeedback] = useState<"idle" | "copied">("idle")
   const [error, setError] = useState<string | null>(null)
+  const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const resetError = useCallback(() => setError(null), [])
 
@@ -130,7 +139,12 @@ export function useShareDialog(projectId: string, canManageAccessByRole: boolean
     try {
       await navigator.clipboard.writeText(window.location.href)
       setCopyFeedback("copied")
-      setTimeout(() => setCopyFeedback("idle"), 1200)
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current)
+      }
+      copyFeedbackTimeoutRef.current = setTimeout(() => {
+        setCopyFeedback("idle")
+      }, 1200)
     } catch {
       setError("Could not copy project link")
     }

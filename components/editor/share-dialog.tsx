@@ -24,6 +24,30 @@ interface ShareDialogProps {
   onCopyLink: () => void
 }
 
+const LOCAL_AVATAR_PLACEHOLDER = "/avatar-placeholder.svg"
+const ALLOWED_AVATAR_ORIGINS: readonly string[] = []
+
+function sanitizeAvatarUrl(value: string): string | null {
+  try {
+    const parsedUrl = new URL(value)
+    const isHttpProtocol = parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:"
+    if (!isHttpProtocol) {
+      return null
+    }
+
+    if (
+      ALLOWED_AVATAR_ORIGINS.length > 0 &&
+      !ALLOWED_AVATAR_ORIGINS.includes(parsedUrl.origin)
+    ) {
+      return null
+    }
+
+    return parsedUrl.toString()
+  } catch {
+    return null
+  }
+}
+
 function AvatarFallback({ name, email }: { name: string | null; email: string }) {
   const initial = (name ?? email).charAt(0).toUpperCase()
   return (
@@ -34,12 +58,14 @@ function AvatarFallback({ name, email }: { name: string | null; email: string })
 }
 
 function AvatarImage({ src, alt }: { src: string; alt: string }) {
+  const sanitizedOrFallback = sanitizeAvatarUrl(src) ?? LOCAL_AVATAR_PLACEHOLDER
+
   return (
     <div
       role="img"
-      aria-label={alt}
+      aria-label={sanitizedOrFallback === LOCAL_AVATAR_PLACEHOLDER ? `${alt} (placeholder)` : alt}
       className="h-8 w-8 rounded-full border border-surface-border bg-cover bg-center"
-      style={{ backgroundImage: `url("${src}")` }}
+      style={{ backgroundImage: `url("${sanitizedOrFallback}")` }}
     />
   )
 }

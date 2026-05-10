@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Ship collaborative editing features (presence cursors, persistence, AI) on top of the Liveblocks + React Flow canvas foundation.
+- Wire backend AI generation and Trigger.dev persistence when specified.
 
 ## Completed
 
@@ -67,7 +67,7 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `components/editor/share-dialog.tsx` with owner invite/remove controls and read-only collaborator list for non-owners.
   - Wired share dialog opening from `components/editor/workspace-shell-client.tsx` and project ownership gating via `isOwner` returned from `lib/project-access.ts`.
 - Feature spec `10-liveblocks-setup` implemented:
-  - Updated `liveblocks.config.ts` with Presence (`cursor`, `isThinking`), UserMeta (`id`, `name`, `avatar`, `color`), and narrowed empty `Storage`/metadata shapes.
+  - Updated `liveblocks.config.ts` with Presence (`cursor`, `thinking`), UserMeta (`id`, `name`, `avatar`, `color`), and narrowed empty `Storage`/metadata shapes.
   - Added `lib/liveblocks.ts` with a cached Liveblocks Node client (`getLiveblocks`) and `cursorColorForUserId()` palette helper.
   - Added `POST /api/liveblocks-auth`: Clerk auth, `getProjectAccess` for the room (project id), `getOrCreateRoom` with private default access, access-token session with user name/avatar/color via `prepareSession` + `allow` + `authorize`. Returns `403` when access is denied.
 - Feature spec `11-base-canvas` implemented:
@@ -107,11 +107,37 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `hooks/use-keyboard-shortcuts.ts`: window `keydown` for `+`/`=`, `-`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Cmd/Ctrl+Y`; skips shortcuts when focus is in `input`, `textarea`, or contenteditable; exports `CANVAS_ZOOM_ANIMATION_MS`.
   - Updated `components/editor/workspace-canvas-client.tsx`: mounts control bar `Panel`, registers shortcuts; removed bottom-right `MiniMap` (`components/editor/canvas-minimap-node.tsx` retained but unused).
   - Verified with `npm run build`.
+- Canvas keyboard delete: React Flow’s default `deleteKeyCode` is Backspace only; `workspace-canvas-client.tsx` now sets `["Delete", "Backspace"]` so the Delete key removes selected shapes (same Liveblocks `onDelete` path as built-in deletion).
+- Edge labels (connections between shapes), including `context/current-issue.md`: optional `CanvasEdgeData.label` in `types/canvas.ts`; `components/editor/canvas-edge.tsx` smooth-step `BaseEdge` + `EdgeLabelRenderer`, Liveblocks via `updateEdgeData`; editing uses a **`textarea`** (`nodrag` / `nopan` / `nowheel`, pointer/mousedown `stopPropagation`, caret at end on focus, auto-height capped at 120px, wrapped text); **read-only** shows **line-clamp-3** so long copy is truncated until the user focuses the line; **selected edge + click** or **double-click** opens the editor; empty edges keep a minimal hit target; `workspace-canvas-client.tsx` registers `canvasEdge` + `smoothstep` edge types and `defaultEdgeOptions` `canvasEdge` + `data: { label: "" }`. Shape/node label behavior unchanged.
 - Feature spec `17-started-template` implemented:
   - Added `components/editor/starter-templates.ts` with `CanvasTemplate`, `CANVAS_TEMPLATES` (microservices, CI/CD pipeline, event-driven), `canvasEdge` + `templateNode` helpers, and palette-aligned `CanvasNode` / `CanvasEdge` data using shared canvas types.
   - Added `components/editor/starter-templates-modal.tsx`: dialog with scrollable grid of cards (preview, name, description, per-card Import), lightweight diagram previews (bounds-fit viewport, center-connected edges, `CanvasShapeSurface` nodes).
   - Updated `components/editor/workspace-canvas-client.tsx`: `forwardRef` + `WorkspaceCanvasClientHandle.openStarterTemplates`, import clears edges/nodes via Liveblocks `onEdgesChange` / `onNodesChange` then applies template graph and `fitView` after load.
   - Updated `components/editor/workspace-shell-client.tsx`: workspace header `Templates` control wired to canvas ref.
+  - Verified with `npm run build`.
+- Feature spec `18-presence-avatars-cursor` implemented:
+  - Added canvas-only participant overlay in the editor room view with collaborator avatar stack, current-user Clerk `UserButton`, conditional divider, and overflow chip.
+  - Added live cursor broadcasting from React Flow mouse movement through Liveblocks presence, clearing cursor state on canvas leave/unmount.
+  - Added cursor rendering for other participants via React Flow viewport coordinates, excluding connections whose Liveblocks user ID matches the active Clerk user ID.
+  - Updated shared presence type to `cursor` + `thinking`.
+  - Verified with `npm run build`.
+- Feature spec `19-ai-sidebar-shell` implemented:
+  - Added `components/editor/ai-workspace-sidebar.tsx`: floating right overlay (`bg-base/95`, border, backdrop blur, slide-in/out transform); header (`AI Workspace` / `Collaborate with Ghost AI`, bot icon, close control); shadcn `Tabs` (`AI Architect`, `Specs`) with accent-active triggers.
+  - AI Architect tab: scroll area, empty state + starter prompt pills (`bg-subtle` / `text-accent-text`), user vs assistant bubble styles per spec, auto-sizing composer (~72–160px) with Enter submit / Shift+Enter newline and accent send button.
+  - Specs tab: `Generate Spec` CTA and static elevated demo card with disabled download.
+  - Theme aliases in `app/globals.css` for `primary-text`, `muted-text`, `accent-text`, and `brand-dim` utilities used by the spec.
+  - `Textarea` now forwards refs for composer height adjustment.
+  - Wired overlay into `workspace-shell-client.tsx` with existing navbar toggle (`open` / `onClose` unchanged behavior surface area).
+- Feature spec `20-canvas-autosave` implemented:
+  - Reused Prisma `Project.canvasJsonPath` for the Vercel Blob URL (no schema migration).
+  - Added `GET` / `PUT` `app/api/projects/[projectId]/canvas/route.ts`: Clerk access via `getProjectAccess`, blob IO with `@vercel/blob` `put` (`canvas/{projectId}.json`, overwrite) and public fetch for reads.
+  - Added `hooks/use-canvas-autosave.ts`: debounced `PUT` (~1.5s), statuses `idle` | `saving` | `saved` | `error`, optional forced flush for manual save.
+  - `workspace-canvas-client.tsx`: hydrates from blob only when Liveblocks flow is empty (aborts / skips if nodes or edges appear first); wires autosave to nodes/edges; `WorkspaceCanvasClientHandle.saveCanvas`.
+  - `workspace-shell-client.tsx`: header **Save** control with inline status; `WorkspaceShellClient` keyed by `roomId` in `app/editor/[roomId]/page.tsx` so save UI resets per project.
+  - Verified with `npm run build`.
+- Feature spec `21-improve-layout` implemented:
+  - Removed `md:pl-80` canvas shrink and inset padding/card wrapper in `workspace-shell-client.tsx` so the canvas uses the full width below the navbar.
+  - Project sidebar and AI workspace panel remain fixed overlays above the canvas; AI panel aligned to `top-14` / `bottom-0` with a subtle `rounded-l-2xl` window edge.
   - Verified with `npm run build`.
 
 ## In Progress
@@ -120,7 +146,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Add shared cursors and persistence when specified in the next feature units.
+- Wire backend AI generation and Trigger.dev workflows when specified.
 
 ## Open Questions
 
@@ -193,3 +219,6 @@ Update this file whenever the current phase, active feature, or implementation s
 - Fixed canvas disconnect controls so removal buttons sit on node chrome outside the shape fill (shape layer `absolute`/`z-0`, larger outward offsets, orphan fallback below the node box instead of `bottom-2` on the fill); verified with `npm run build`.
 - Fixed starter-template imports showing a single bottom disconnect control: template edges omit handle ids, so disconnect placement now infers cardinal side from node center positions (`inferEdgeAttachmentSide`); verified with `npm run build`.
 - Aligned disconnect placement with rendered edges: missing-handle edges now use `getEdgePosition` (same handle selection as React Flow); geometric fallback uses ray–bbox exit instead of dominant center deltas; verified with `npm run build`.
+- Implemented `18-presence-avatars-cursor`: canvas-only collaborator avatar stack, current-user Clerk `UserButton` in the canvas overlay, Liveblocks cursor broadcast on React Flow mouse movement, live cursor rendering for other participants, and presence type rename to `thinking`; verified with `npm run build`.
+- Implemented `19-ai-sidebar-shell`: extracted AI workspace sidebar UI with tabs, composer, specs demo card, CSS theme aliases for spec tokens, ref-forwarding `Textarea`, and workspace shell wiring; verified with `npm run build`.
+- Implemented `20-canvas-autosave`: Vercel Blob canvas JSON + Prisma URL, canvas GET/PUT APIs, debounced autosave hook, conditional hydrate from blob when the Liveblocks room is empty, header Save + status, build verified.

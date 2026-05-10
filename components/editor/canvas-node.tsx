@@ -2,37 +2,13 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
-import {
-  ConnectionMode,
-  Handle,
-  NodeResizer,
-  type InternalNode,
-  type NodeProps,
-  useEdges,
-  useNodes,
-  useReactFlow,
-  useStore,
-} from "@xyflow/react"
+import { ConnectionMode, Handle, NodeResizer, type InternalNode, type NodeProps, useEdges, useNodes, useReactFlow, useStore } from "@xyflow/react"
 import { getEdgePosition } from "@xyflow/system"
 import { Trash2 } from "lucide-react"
 
 import { CanvasShapeSurface } from "@/components/editor/canvas-shape-surface"
-import {
-  anchorToHandleStyle,
-  getCanvasHandleAnchors,
-  inferEdgeAttachmentSide,
-  positionToCardinalSide,
-  type CardinalSide,
-} from "@/lib/canvas-handle-layout"
-import {
-  CANVAS_NODE_MIN_HEIGHT,
-  CANVAS_NODE_MIN_WIDTH,
-  DEFAULT_NODE_COLOR_PAIR,
-  DEFAULT_SHAPE_DIMENSIONS,
-  NODE_COLORS,
-  type CanvasEdge,
-  type CanvasNode,
-} from "@/types/canvas"
+import { anchorToHandleStyle, getCanvasHandleAnchors, inferEdgeAttachmentSide, positionToCardinalSide, type CardinalSide } from "@/lib/canvas-handle-layout"
+import { CANVAS_NODE_MIN_HEIGHT, CANVAS_NODE_MIN_WIDTH, DEFAULT_NODE_COLOR_PAIR, DEFAULT_SHAPE_DIMENSIONS, NODE_COLORS, type CanvasEdge, type CanvasNode } from "@/types/canvas"
 import { cn } from "@/lib/utils"
 
 const LABEL_PLACEHOLDER = "Label"
@@ -71,14 +47,7 @@ function sideFromHandleId(handle: string | null | undefined): CardinalSide | nul
  * so matching only `sourceHandle===*-source` misses disconnect controls.
  * Edges without handle ids use `getEdgePosition` (same as edge rendering) then geometric fallback.
  */
-function bucketConnectionsBySide(
-  edges: CanvasEdge[],
-  nodeId: string,
-  nodes: CanvasNode[],
-  getNodeConnections: ReturnType<typeof useReactFlow<CanvasNode, CanvasEdge>>["getNodeConnections"],
-  getInternalNode: (id: string) => InternalNode<CanvasNode> | undefined,
-  connectionMode: ConnectionMode,
-): { edgesBySide: Record<CardinalSide, CanvasEdge[]>; orphanEdges: CanvasEdge[] } {
+function bucketConnectionsBySide(edges: CanvasEdge[], nodeId: string, nodes: CanvasNode[], getNodeConnections: ReturnType<typeof useReactFlow<CanvasNode, CanvasEdge>>["getNodeConnections"], getInternalNode: (id: string) => InternalNode<CanvasNode> | undefined, connectionMode: ConnectionMode): { edgesBySide: Record<CardinalSide, CanvasEdge[]>; orphanEdges: CanvasEdge[] } {
   const edgeById = new Map(edges.map((e) => [e.id, e]))
   const map: Record<CardinalSide, CanvasEdge[]> = {
     top: [],
@@ -125,20 +94,9 @@ function bucketConnectionsBySide(
   return { edgesBySide: map, orphanEdges: dedupeEdgesById(ambiguous) }
 }
 
-const disconnectHandleBtnClass = cn(
-  "nodrag nopan pointer-events-auto absolute z-[45] flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-  "border border-surface-border bg-elevated/95 shadow-md backdrop-blur-sm",
-  "text-copy-muted transition-colors hover:border-destructive/40 hover:text-destructive",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
-)
+const disconnectHandleBtnClass = cn("nodrag nopan pointer-events-auto absolute z-[45] flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full", "border border-surface-border bg-elevated/95 shadow-md backdrop-blur-sm", "text-copy-muted transition-colors hover:border-destructive/40 hover:text-destructive", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60")
 
-const disconnectFallbackBtnClass = cn(
-  "nodrag nopan pointer-events-auto absolute left-1/2 z-[45] flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-  "top-[calc(100%+18px)]",
-  "border border-surface-border bg-elevated/95 shadow-md backdrop-blur-sm",
-  "text-copy-muted transition-colors hover:border-destructive/40 hover:text-destructive",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
-)
+const disconnectFallbackBtnClass = cn("nodrag nopan pointer-events-auto absolute left-1/2 z-[45] flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full", "top-[calc(100%+18px)]", "border border-surface-border bg-elevated/95 shadow-md backdrop-blur-sm", "text-copy-muted transition-colors hover:border-destructive/40 hover:text-destructive", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60")
 
 /** Offset disconnect control from handle center (node-local px). */
 function disconnectIconOffset(side: CardinalSide): { dx: number; dy: number } {
@@ -241,10 +199,7 @@ export function CanvasNodeView({ id, data, selected, width, height }: NodeProps<
 
   const labelTypography = "text-sm leading-tight text-center"
 
-  const { edgesBySide, orphanEdges } = useMemo(
-    () => bucketConnectionsBySide(edges, id, nodes, getNodeConnections, getInternalNode, connectionMode),
-    [edges, id, nodes, getNodeConnections, getInternalNode, connectionMode],
-  )
+  const { edgesBySide, orphanEdges } = useMemo(() => bucketConnectionsBySide(edges, id, nodes, getNodeConnections, getInternalNode, connectionMode), [edges, id, nodes, getNodeConnections, getInternalNode, connectionMode])
 
   const disconnectEdges = useCallback(
     (toRemove: CanvasEdge[]) => {
@@ -254,23 +209,14 @@ export function CanvasNodeView({ id, data, selected, width, height }: NodeProps<
     [deleteElements],
   )
 
-  const disconnectSide = useCallback(
-    (side: CardinalSide) => disconnectEdges(edgesBySide[side]),
-    [disconnectEdges, edgesBySide],
-  )
+  const disconnectSide = useCallback((side: CardinalSide) => disconnectEdges(edgesBySide[side]), [disconnectEdges, edgesBySide])
 
   const disconnectOrphans = useCallback(() => disconnectEdges(orphanEdges), [disconnectEdges, orphanEdges])
 
   const handlePairs = anchors.flatMap((a) => {
     const connectedHere = edgesBySide[a.side].length > 0
-    const handleVisibility =
-      connectedHere && selected
-        ? "opacity-100"
-        : "opacity-0 group-hover/node:opacity-100"
-    const handleClass = cn(
-      "z-10 h-2.5! w-2.5! border-2! border-bg-base! bg-copy-primary! transition-opacity",
-      handleVisibility,
-    )
+    const handleVisibility = connectedHere && selected ? "opacity-100" : "opacity-0 group-hover/node:opacity-100"
+    const handleClass = cn("z-10 h-2.5! w-2.5! border-2! border-bg-base! bg-copy-primary! transition-opacity", handleVisibility)
     const style = anchorToHandleStyle(a.x, a.y)
     const { dx, dy } = disconnectIconOffset(a.side)
     const disconnectBtn =
@@ -292,45 +238,13 @@ export function CanvasNodeView({ id, data, selected, width, height }: NodeProps<
         </button>
       ) : null
 
-    return [
-      disconnectBtn,
-      <Handle
-        key={`${a.side}-target`}
-        id={`${a.side}-target`}
-        type='target'
-        position={a.position}
-        style={style}
-        className={handleClass}
-      />,
-      <Handle
-        key={`${a.side}-source`}
-        id={`${a.side}-source`}
-        type='source'
-        position={a.position}
-        style={style}
-        className={handleClass}
-      />,
-    ]
+    return [disconnectBtn, <Handle key={`${a.side}-target`} id={`${a.side}-target`} type='target' position={a.position} style={style} className={handleClass} />, <Handle key={`${a.side}-source`} id={`${a.side}-source`} type='source' position={a.position} style={style} className={handleClass} />]
   })
 
   return (
-    <div
-      className={cn(
-        "group/node relative overflow-visible shadow-sm",
-        selected && "drop-shadow-[0_0_10px_rgba(0,200,212,0.25)]",
-      )}
-      style={{ width: w, height: h }}
-    >
+    <div className={cn("group/node relative overflow-visible shadow-sm", selected && "drop-shadow-[0_0_10px_rgba(0,200,212,0.25)]")} style={{ width: w, height: h }}>
       {selected ? (
-        <div
-          role='toolbar'
-          aria-label='Node colors'
-          className={cn(
-            "nodrag nopan pointer-events-auto absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-surface-border bg-elevated/95 px-1.5 py-1 shadow-lg backdrop-blur-sm",
-          )}
-          style={{ bottom: "calc(100% + 10px)" }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <div role='toolbar' aria-label='Node colors' className={cn("nodrag nopan pointer-events-auto absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-surface-border bg-elevated/95 px-1.5 py-1 shadow-lg backdrop-blur-sm")} style={{ bottom: "calc(100% + 10px)" }} onPointerDown={(e) => e.stopPropagation()}>
           {NODE_COLORS.map((pair) => {
             const isActive = data.color === pair.fill
             const isHoverGlow = selected && !isActive && colorSwatchHoverFill === pair.fill
@@ -341,17 +255,10 @@ export function CanvasNodeView({ id, data, selected, width, height }: NodeProps<
                 title={pair.label}
                 aria-label={`${pair.label} fill`}
                 aria-pressed={isActive}
-                className={cn(
-                  "relative h-6 w-6 shrink-0 rounded-full border border-white/15 transition-[box-shadow] duration-150",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
-                )}
+                className={cn("relative h-6 w-6 shrink-0 rounded-full border border-white/15 transition-[box-shadow] duration-150", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60")}
                 style={{
                   backgroundColor: pair.fill,
-                  boxShadow: isActive
-                    ? `0 0 0 2px var(--bg-elevated), 0 0 0 4px ${pair.text}`
-                    : isHoverGlow
-                      ? `0 0 6px 1px color-mix(in srgb, ${pair.text} 58%, transparent)`
-                      : undefined,
+                  boxShadow: isActive ? `0 0 0 2px var(--bg-elevated), 0 0 0 4px ${pair.text}` : isHoverGlow ? `0 0 6px 1px color-mix(in srgb, ${pair.text} 58%, transparent)` : undefined,
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
@@ -369,64 +276,18 @@ export function CanvasNodeView({ id, data, selected, width, height }: NodeProps<
           })}
         </div>
       ) : null}
-      <NodeResizer
-        isVisible={selected}
-        minWidth={CANVAS_NODE_MIN_WIDTH}
-        minHeight={CANVAS_NODE_MIN_HEIGHT}
-        color='var(--border-subtle)'
-        handleClassName='!h-2 !w-2 !min-h-2 !min-w-2 !rounded-sm !border !border-white/15 !bg-elevated/90 !shadow-none'
-        lineClassName='!border-white/10'
-        lineStyle={{ borderWidth: 1 }}
-      />
+      <NodeResizer isVisible={selected} minWidth={CANVAS_NODE_MIN_WIDTH} minHeight={CANVAS_NODE_MIN_HEIGHT} color='var(--border-subtle)' handleClassName='!h-2 !w-2 !min-h-2 !min-w-2 !rounded-sm !border !border-white/15 !bg-elevated/90 !shadow-none' lineClassName='!border-white/10' lineStyle={{ borderWidth: 1 }} />
       <div className='pointer-events-none absolute inset-0 z-0' aria-hidden>
-        <CanvasShapeSurface
-          shape={data.shape}
-          width={w}
-          height={h}
-          fill={data.color}
-          stroke={borderColor}
-          strokeWidth={borderW}
-          className='pointer-events-none'
-        />
+        <CanvasShapeSurface shape={data.shape} width={w} height={h} fill={data.color} stroke={borderColor} strokeWidth={borderW} className='pointer-events-none' />
       </div>
       {isEditing ? (
-        <div
-          className={cn(
-            "nodrag nopan nowheel absolute inset-0 z-2 flex items-center justify-center px-3",
-          )}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <textarea
-            ref={textareaRef}
-            id={`canvas-node-label-${id}`}
-            name={`canvas-node-label-${id}`}
-            value={draft}
-            placeholder={LABEL_PLACEHOLDER}
-            rows={1}
-            spellCheck={false}
-            className={cn(
-              "nodrag nopan nowheel box-border max-h-full min-h-0 w-full resize-none bg-transparent text-center break-words whitespace-pre-wrap outline-none",
-              labelTypography,
-            )}
-            style={{ color: labelColor, caretColor: labelColor }}
-            onChange={(e) => handleDraftChange(e.target.value)}
-            onBlur={stopEditing}
-            onKeyDown={handleTextareaKeyDown}
-          />
+        <div className={cn("nodrag nopan nowheel absolute inset-0 z-2 flex items-center justify-center px-3")} onPointerDown={(e) => e.stopPropagation()}>
+          <textarea ref={textareaRef} id={`canvas-node-label-${id}`} name={`canvas-node-label-${id}`} value={draft} placeholder={LABEL_PLACEHOLDER} rows={1} spellCheck={false} className={cn("nodrag nopan nowheel box-border max-h-full min-h-0 w-full resize-none bg-transparent text-center break-words whitespace-pre-wrap outline-none", labelTypography)} style={{ color: labelColor, caretColor: labelColor }} onChange={(e) => handleDraftChange(e.target.value)} onBlur={stopEditing} onKeyDown={handleTextareaKeyDown} />
         </div>
       ) : (
-        <div
-          className={cn(
-            "absolute inset-0 z-1 flex cursor-default items-center justify-center px-3",
-            labelTypography,
-          )}
-          onDoubleClick={handleLabelDoubleClick}
-        >
+        <div className={cn("absolute inset-0 z-1 flex cursor-default items-center justify-center px-3", labelTypography)} onDoubleClick={handleLabelDoubleClick}>
           <span
-            className={cn(
-              "pointer-events-none line-clamp-4 max-h-full w-full overflow-hidden",
-              !data.label.trim() && "text-copy-muted/75",
-            )}
+            className={cn("pointer-events-none line-clamp-4 max-h-full w-full overflow-hidden", !data.label.trim() && "text-copy-muted/75")}
             style={data.label.trim() ? { color: labelColor } : undefined}
           >
             {data.label.trim() ? data.label : LABEL_PLACEHOLDER}

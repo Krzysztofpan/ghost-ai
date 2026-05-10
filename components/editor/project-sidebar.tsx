@@ -65,7 +65,13 @@ export function ProjectSidebar({ isOpen, onClose, ownedProjects, sharedProjects,
       {/* Mobile backdrop scrim */}
       <div className={cn("fixed inset-0 z-10 bg-black/50 transition-opacity duration-300 md:hidden", isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0")} onClick={onClose} aria-hidden='true' />
 
-      <aside className={cn("fixed top-14 bottom-0 left-0 z-20 flex w-80 flex-col border-r border-surface-border bg-elevated/95 backdrop-blur-sm transition-transform duration-300 ease-out", isOpen ? "translate-x-0" : "-translate-x-full")} aria-hidden={!isOpen}>
+      <aside
+        className={cn(
+          "fixed top-18 bottom-4 left-4 z-20 flex w-80 flex-col overflow-hidden rounded-2xl border border-surface-border bg-elevated/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-sm transition-transform duration-300 ease-out",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        aria-hidden={!isOpen}
+      >
         <div className='flex items-center justify-between border-b border-surface-border px-4 py-3'>
           <h2 className='text-sm font-semibold tracking-wide text-copy-primary uppercase'>Projects</h2>
           <Button type='button' variant='ghost' size='icon-sm' onClick={onClose} aria-label='Close project sidebar' className='text-copy-secondary hover:bg-subtle hover:text-copy-primary'>

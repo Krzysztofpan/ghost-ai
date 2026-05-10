@@ -62,7 +62,10 @@ export type CanvasNodeData = {
   shape: NodeShape
 }
 
-export type CanvasEdgeData = Record<string, never>
+export type CanvasEdgeData = {
+  /** Text shown on the connection between nodes */
+  label?: string
+}
 
 export type CanvasNode = Node<CanvasNodeData, "canvasNode">
 export type CanvasEdge = Edge<CanvasEdgeData, "canvasEdge">

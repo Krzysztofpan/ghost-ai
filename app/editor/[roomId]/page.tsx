@@ -104,6 +104,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
 
   return (
     <WorkspaceShellClient
+      key={roomId}
       roomId={roomId}
       projectName={projectName}
       canManageAccess={isOwner}

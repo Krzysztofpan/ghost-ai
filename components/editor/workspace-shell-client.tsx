@@ -1,9 +1,10 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Bot, LayoutTemplate, Share2 } from "lucide-react"
+import { AlertCircle, Bot, Check, LayoutTemplate, Loader2, Save, Share2 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
+import { AiWorkspaceSidebar } from "@/components/editor/ai-workspace-sidebar"
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
@@ -12,8 +13,8 @@ import { ShareDialog } from "@/components/editor/share-dialog"
 import { WorkspaceCanvasClient, type WorkspaceCanvasClientHandle } from "@/components/editor/workspace-canvas-client"
 import { Button } from "@/components/ui/button"
 import type { ProjectSidebarData } from "@/lib/project-data"
-import { cn } from "@/lib/utils"
 import { useProjectActions } from "@/hooks/use-project-actions"
+import type { CanvasAutosaveStatus } from "@/hooks/use-canvas-autosave"
 import { useShareDialog } from "@/hooks/use-share-dialog"
 
 interface WorkspaceShellClientProps {
@@ -34,6 +35,7 @@ export function WorkspaceShellClient({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true)
   const canvasRef = useRef<WorkspaceCanvasClientHandle>(null)
+  const [canvasSaveStatus, setCanvasSaveStatus] = useState<CanvasAutosaveStatus>("idle")
   const { dialog, formName, setFormName, roomId: nextRoomId, isSubmitting, openCreate, openRename, openDelete, close, submitCreate, submitRename, submitDelete } = useProjectActions()
   const shareDialog = useShareDialog(roomId, canManageAccess)
 
@@ -44,6 +46,35 @@ export function WorkspaceShellClient({
           <h1 className='truncate text-sm font-semibold text-copy-primary'>{projectName}</h1>
         </div>
         <div className='flex items-center gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            className='gap-1.5'
+            aria-label='Save canvas now'
+            onClick={() => void canvasRef.current?.saveCanvas()}
+          >
+            <Save className='h-3.5 w-3.5' />
+            Save
+            {canvasSaveStatus === "saving" ? (
+              <span className='inline-flex items-center gap-1 border-l border-surface-border pl-1.5 text-[11px] font-normal text-copy-muted'>
+                <Loader2 className='h-3 w-3 animate-spin' aria-hidden />
+                Saving
+              </span>
+            ) : null}
+            {canvasSaveStatus === "saved" ? (
+              <span className='inline-flex items-center gap-1 border-l border-surface-border pl-1.5 text-[11px] font-normal text-copy-muted'>
+                <Check className='h-3 w-3 text-emerald-400' aria-hidden />
+                Saved
+              </span>
+            ) : null}
+            {canvasSaveStatus === "error" ? (
+              <span className='inline-flex items-center gap-1 border-l border-surface-border pl-1.5 text-[11px] font-normal text-red-400'>
+                <AlertCircle className='h-3 w-3 shrink-0' aria-hidden />
+                Error
+              </span>
+            ) : null}
+          </Button>
           <Button
             type='button'
             variant='outline'
@@ -72,31 +103,21 @@ export function WorkspaceShellClient({
         </div>
       </header>
 
-      <div className={cn("relative flex h-[calc(100vh-3.5rem)] overflow-hidden transition-[padding] duration-300 ease-out", isSidebarOpen ? "md:pl-80" : "md:pl-0")}>
+      <div className='relative flex min-h-0 flex-1 overflow-hidden'>
         <ProjectSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} activeProjectId={roomId} ownedProjects={ownedProjects} sharedProjects={sharedProjects} onCreateProject={openCreate} onRenameProject={openRename} onDeleteProject={openDelete} />
 
         {!isSidebarOpen && (
-          <Button type='button' size='sm' onClick={() => setIsSidebarOpen(true)} className='absolute top-4 left-4 z-10 h-9 rounded-xl border border-brand/40 bg-accent-dim px-3 text-brand shadow-[0_0_0_1px_rgba(0,200,212,0.2),0_10px_24px_rgba(0,0,0,0.45)] hover:bg-accent-dim/80 hover:text-copy-primary'>
+          <Button type='button' size='sm' onClick={() => setIsSidebarOpen(true)} className='absolute top-4 left-4 z-30 h-9 rounded-xl border border-brand/40 bg-accent-dim px-3 text-brand shadow-[0_0_0_1px_rgba(0,200,212,0.2),0_10px_24px_rgba(0,0,0,0.45)] hover:bg-accent-dim/80 hover:text-copy-primary'>
             <span className='mr-1 inline-block h-1.5 w-1.5 rounded-full bg-brand' aria-hidden='true' />
             Open Projects
           </Button>
         )}
 
-        <section className='flex min-h-0 flex-1 bg-base px-6 py-6 transition-all duration-300 ease-out'>
-          <div className='relative flex min-h-0 w-full flex-1 overflow-hidden rounded-3xl border border-surface-border bg-surface/40'>
-            <WorkspaceCanvasClient ref={canvasRef} roomId={roomId} className='min-h-[min(640px,calc(100vh-8rem))]' />
-          </div>
+        <section className='relative flex min-h-0 min-w-0 flex-1 bg-base'>
+          <WorkspaceCanvasClient ref={canvasRef} roomId={roomId} className='h-full min-h-0 w-full' onAutosaveStatusChange={setCanvasSaveStatus} />
         </section>
 
-        {isAiSidebarOpen && (
-          <aside className='hidden w-80 border-l border-surface-border bg-elevated/95 p-4 md:block'>
-            <div className='mb-4 flex items-center gap-2 text-copy-primary'>
-              <Bot className='h-4 w-4 text-brand' />
-              <h2 className='text-sm font-semibold'>AI Workspace</h2>
-            </div>
-            <div className='flex h-[calc(100%-2rem)] items-center justify-center rounded-2xl border border-dashed border-surface-border-subtle bg-surface px-4 text-center text-sm text-copy-muted'>AI chat tools will be added in a later feature unit.</div>
-          </aside>
-        )}
+        <AiWorkspaceSidebar open={isAiSidebarOpen} onClose={() => setIsAiSidebarOpen(false)} />
       </div>
 
       <CreateProjectDialog open={dialog.type === "create"} onClose={close} name={formName} onNameChange={setFormName} roomId={nextRoomId} isSubmitting={isSubmitting} onSubmit={submitCreate} />

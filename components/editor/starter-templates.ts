@@ -20,7 +20,7 @@ function canvasEdge(id: string, source: string, target: string): CanvasEdge {
     type: "canvasEdge",
     source,
     target,
-    data: {},
+    data: { label: "" },
   }
 }
 

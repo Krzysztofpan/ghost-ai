@@ -53,6 +53,10 @@
   --color-brand-ai: var(--accent-ai);
   --color-brand-ai-text: var(--accent-ai-text);
   --color-accent-dim: var(--accent-primary-dim);
+  --color-primary-text: var(--text-primary);
+  --color-muted-text: var(--text-muted);
+  --color-accent-text: var(--accent-ai-text);
+  --color-brand-dim: var(--accent-primary-dim);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Compass, Share2 } from "lucide-react"
+import { Bot, Share2 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
@@ -9,6 +9,7 @@ import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
+import { WorkspaceCanvasClient } from "@/components/editor/workspace-canvas-client"
 import { Button } from "@/components/ui/button"
 import type { ProjectSidebarData } from "@/lib/project-data"
 import { cn } from "@/lib/utils"
@@ -69,19 +70,9 @@ export function WorkspaceShellClient({
           </Button>
         )}
 
-        <section className='flex flex-1 items-center justify-center bg-base px-6 py-6 transition-all duration-300 ease-out'>
-          <div className='relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl border border-surface-border bg-surface/40'>
-            <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(100,87,249,0.16),transparent_58%)]' />
-            <div className='pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(58,58,66,0.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(58,58,66,0.22)_1px,transparent_1px)] bg-size-[42px_42px]' />
-            <div className='relative z-10 max-w-xl px-8 text-center'>
-              <div className='mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl border border-surface-border-subtle bg-elevated text-brand'>
-                <Compass className='h-6 w-6' />
-              </div>
-              <p className='text-xs font-semibold tracking-[0.24em] text-copy-faint uppercase'>Workspace Shell</p>
-              <h2 className='mt-4 text-3xl font-semibold text-copy-primary'>Canvas and collaboration tooling land here next.</h2>
-              <p className='mt-4 text-sm leading-6 text-copy-muted'>This room is ready for shared architecture editing and AI workflows. For now, the shell is wired with project context and navigation only.</p>
-              <p className='mt-4 font-mono text-xs text-copy-secondary'>{roomId}</p>
-            </div>
+        <section className='flex min-h-0 flex-1 bg-base px-6 py-6 transition-all duration-300 ease-out'>
+          <div className='relative flex min-h-0 w-full flex-1 overflow-hidden rounded-3xl border border-surface-border bg-surface/40'>
+            <WorkspaceCanvasClient roomId={roomId} className='min-h-[min(640px,calc(100vh-8rem))]' />
           </div>
         </section>
 

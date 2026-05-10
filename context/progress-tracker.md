@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature spec `09-share-dialog` implemented and verified with lint and production build checks.
+- Ship collaborative editing features (presence cursors, persistence, AI) on top of the Liveblocks + React Flow canvas foundation.
 
 ## Completed
 
@@ -66,6 +66,27 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `hooks/use-share-dialog.ts` to manage share dialog state, collaborator fetch/mutations, invite input, and temporary copy-link feedback.
   - Added `components/editor/share-dialog.tsx` with owner invite/remove controls and read-only collaborator list for non-owners.
   - Wired share dialog opening from `components/editor/workspace-shell-client.tsx` and project ownership gating via `isOwner` returned from `lib/project-access.ts`.
+- Feature spec `10-liveblocks-setup` implemented:
+  - Updated `liveblocks.config.ts` with Presence (`cursor`, `isThinking`), UserMeta (`id`, `name`, `avatar`, `color`), and narrowed empty `Storage`/metadata shapes.
+  - Added `lib/liveblocks.ts` with a cached Liveblocks Node client (`getLiveblocks`) and `cursorColorForUserId()` palette helper.
+  - Added `POST /api/liveblocks-auth`: Clerk auth, `getProjectAccess` for the room (project id), `getOrCreateRoom` with private default access, access-token session with user name/avatar/color via `prepareSession` + `allow` + `authorize`. Returns `403` when access is denied.
+- Feature spec `11-base-canvas` implemented:
+  - Added `types/canvas.ts` with `NODE_COLORS`, `NODE_SHAPES`, `CanvasNodeData` (`label`, `color`, `shape`), `canvasNode` / `canvasEdge` React Flow types.
+  - Extended `liveblocks.config.ts` `Storage` with optional typed `flow` for `@liveblocks/react-flow`.
+  - Added `components/editor/workspace-canvas-client.tsx`: `LiveblocksProvider` (`/api/liveblocks-auth`), `RoomProvider`, `initialPresence` (`cursor: null`), `ClientSideSuspense` loading UI, `useErrorListener` connection-error fallback, `useLiveblocksFlow` with suspense and empty initial nodes/edges, React Flow with loose connections, `fitView`, dot `Background`, `MiniMap`, smooth-step default edges.
+  - Replaced workspace canvas placeholder in `workspace-shell-client.tsx` with the collaborative canvas.
+- Feature spec `12-shape-panel` implemented:
+  - Extended `types/canvas.ts` with `CANVAS_SHAPE_DRAG_MIME`, `ShapeDragPayload`, `DEFAULT_SHAPE_DIMENSIONS` per shape, and documented defaults (wide rectangles, square circles, larger diamonds, etc.).
+  - Added `components/editor/canvas-shape-panel.tsx`: pill toolbar (`nopan`/`nodrag`), Lucide icons per shape, HTML drag payloads with shape + default width/height JSON.
+  - Added `components/editor/canvas-node.tsx`: `canvasNode` renderer with shape-specific SVG surfaces (see below), centered label, connection handles, hover-reveal styling using shared tokens.
+  - Updated `components/editor/workspace-canvas-client.tsx`: `Panel` + shape toolbar, `nodeTypes`, `onInit` + `screenToFlowPosition` drop handling, `onNodesChange` add with ids `${shape}-${timestamp}-${counter}`; default fill and empty label on new nodes.
+- Resolved `context/current-issue.md` (distinct shapes + MiniMap fidelity):
+  - Added `components/editor/canvas-shape-surface.tsx`: shared geometry for each `NodeShape` on the main canvas and in the navigator (`CanvasShapeSurface`, `MiniMapShapeSvg`).
+  - Added `components/editor/canvas-minimap-node.tsx`: MiniMap `nodeComponent` reads each node’s `data.shape` from the React Flow store and draws matching SVG; `MiniMap` uses per-node `nodeColor` / `nodeStrokeColor` from `data.color` and selection state instead of a flat cyan swatch.
+- Resolved `context/current-issue.md` (wire ↔ shape alignment):
+  - Added `lib/canvas-handle-layout.ts`: per-shape cardinal anchors on the real outline (ellipse for circles, hex flat edges, cylinder rim/sides, etc.) with pixel-precise `Handle` styles (`translate(-50%,-50%)`) so dots sit on the silhouette instead of the bounding box edges.
+  - Updated `components/editor/canvas-node.tsx`: stacked `source` + `target` handle pair per side (`{side}-source` / `{side}-target`) so multiple edges can attach to the same visual dot and flows work with `ConnectionMode.Loose`.
+  - Updated `components/editor/workspace-canvas-client.tsx`: `isValidConnection` blocks same-node edges; `connectionRadius={28}` improves snapping to the nearest handle when dropping nearby.
 
 ## In Progress
 
@@ -73,7 +94,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Begin the next feature unit on top of workspace sharing, likely real-time room/canvas behavior integration.
+- Add shared cursors, canvas controls, and persistence when specified in the next feature units.
 
 ## Open Questions
 
@@ -126,7 +147,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - Hardened `getCurrentUserEmails` in `app/api/projects/[projectId]/collaborators/route.ts` with error handling around Clerk `currentUser()` calls, structured error logging (`[getCurrentUserEmails]`), and safe empty-email fallback on failure.
 - Added defensive error handling in collaborators route helpers/handlers (`getProject`, `isProjectCollaborator`, `buildCollaboratorList`, `GET`/`POST`/`DELETE`) with contextual logging and controlled `500` responses for unexpected backend failures.
 - Wrapped `getCurrentIdentity()` in `app/editor/[roomId]/page.tsx` with `try/catch`, added contextual error logging, and redirected to `/sign-in` on identity-resolution failure.
+- Implemented `10-liveblocks-setup`: `@liveblocks/node` dependency, `lib/liveblocks.ts`, and `app/api/liveblocks-auth/route.ts`; verified with `npm run build`.
 - Added local `withRetry` support in `app/editor/[roomId]/page.tsx` for `getCurrentIdentity`, `getProjectAccess`, and `getEditorProjectsData`, with exponential backoff, per-call logging, redirect fallback for identity failures, and access-denied/data-fallback behavior for access/project-data failures.
 - Fixed a syntax error in `lib/project-access.ts` by closing `getCurrentIdentity()` before `getProjectAccess()` so TypeScript can parse the module correctly.
 - Hardened `components/editor/share-dialog.tsx` avatar rendering by sanitizing external avatar URLs (`URL` parsing + http/https-only check + optional origin allowlist) and falling back to a local placeholder asset when invalid.
 - Fixed `hooks/use-share-dialog.ts` copy-link feedback timeout lifecycle by storing timeout ID in a ref, clearing previous timers before scheduling a new reset, and adding unmount cleanup to prevent post-unmount state updates.
+- Implemented `11-base-canvas`: Liveblocks room wrapper + `useLiveblocksFlow` React Flow canvas in the editor workspace; verified with `npm run build` and `npm run lint`.
+- Implemented `12-shape-panel`: bottom-center floating shape toolbar with drag payloads, canvas drop → Liveblocks `onNodesChange` add, `canvasNode` type + basic node view; verified with `npm run build`.
+- Addressed `context/current-issue.md`: each dropped shape renders with its own geometry on the canvas and in the MiniMap (correct relative sizes and fills); verified with `npm run build` and `npm run lint`.
+- Addressed `context/current-issue.md` (handles/wires): outline-aligned connection dots per shape, paired source/target handles, no self-connections, tuned connection snap radius; verified with `npm run build` and `npm run lint`.

@@ -72,7 +72,7 @@ Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke wid
 
 ### Node Shapes
 
-6 supported shapes, defined in `types/canvas.ts` as `NODE_SHAPES`. Complex shapes (diamond, hexagon, cylinder) are rendered as inline SVGs rather than CSS borders.
+6 supported shapes, defined in `types/canvas.ts` as `NODE_SHAPES`. On the main canvas, `rectangle`, `pill`, and `circle` use CSS (`background`, `border`, `border-radius`); `diamond`, `hexagon`, and `cylinder` use inline SVG that scales with the node’s width and height. Node outlines use a subtle border at rest and a brighter accent border when selected.
 
 - `rectangle` — default general-purpose node
 - `diamond` — decision / gateway

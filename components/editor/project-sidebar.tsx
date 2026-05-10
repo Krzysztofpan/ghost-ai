@@ -21,12 +21,30 @@ interface ProjectSidebarProps {
 
 function ProjectItem({ project, isActive, showActions, onRename, onDelete }: { project: ProjectListItem; isActive: boolean; showActions: boolean; onRename: () => void; onDelete: () => void }) {
   const router = useRouter()
+  const openProject = () => router.push(`/editor/${encodeURIComponent(project.id)}`)
 
   return (
-    <div className={cn("group flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors", isActive ? "bg-accent-dim text-copy-primary" : "text-copy-secondary hover:bg-subtle hover:text-copy-primary")}>
-      <button type='button' className='truncate text-left' onClick={() => router.push(`/editor/${encodeURIComponent(project.id)}`)}>
-        {project.name}
-      </button>
+    <div
+      role='button'
+      tabIndex={0}
+      aria-label={`Open project ${project.name}`}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "group flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-elevated",
+        isActive ? "bg-accent-dim text-copy-primary" : "text-copy-secondary hover:bg-subtle hover:text-copy-primary",
+      )}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return
+        openProject()
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return
+        e.preventDefault()
+        if ((e.target as HTMLElement).closest("button")) return
+        openProject()
+      }}
+    >
+      <span className='min-w-0 flex-1 truncate text-left'>{project.name}</span>
       {showActions && (
         <div className='flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100'>
           <Button type='button' variant='ghost' size='icon-xs' onClick={onRename} aria-label={`Rename ${project.name}`} className='text-copy-muted hover:text-copy-primary'>

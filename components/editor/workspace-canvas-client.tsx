@@ -1,13 +1,21 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
-import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useErrorListener } from "@liveblocks/react"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react"
+import {
+  ClientSideSuspense,
+  LiveblocksProvider,
+  RoomProvider,
+  useCanRedo,
+  useCanUndo,
+  useErrorListener,
+  useRedo,
+  useUndo,
+} from "@liveblocks/react"
 import { useLiveblocksFlow } from "@liveblocks/react-flow"
 import {
   Background,
   BackgroundVariant,
   ConnectionMode,
-  MiniMap,
   Panel,
   ReactFlow,
   type IsValidConnection,
@@ -16,9 +24,12 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
+import { CanvasControlBar } from "@/components/editor/canvas-control-bar"
 import { CanvasNodeView } from "@/components/editor/canvas-node"
-import { CanvasMiniMapNode } from "@/components/editor/canvas-minimap-node"
 import { CanvasShapePanel } from "@/components/editor/canvas-shape-panel"
+import { CanvasShapeSurface } from "@/components/editor/canvas-shape-surface"
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
+import type { CanvasTemplate } from "@/components/editor/starter-templates"
 import {
   CANVAS_SHAPE_DRAG_MIME,
   DEFAULT_NODE_COLOR_PAIR,
@@ -27,7 +38,9 @@ import {
   type CanvasEdge,
   type CanvasNode,
   type NodeShape,
+  type ShapeDragPayload,
 } from "@/types/canvas"
+import { CANVAS_ZOOM_ANIMATION_MS, useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
 
 const CANVAS_NODE_TYPES = { canvasNode: CanvasNodeView }
@@ -38,6 +51,10 @@ function isNodeShape(value: unknown): value is NodeShape {
 
 const isValidCanvasConnection: IsValidConnection<CanvasEdge> = (connection) =>
   connection.source !== connection.target
+
+export type WorkspaceCanvasClientHandle = {
+  openStarterTemplates: () => void
+}
 
 interface WorkspaceCanvasClientProps {
   roomId: string
@@ -75,7 +92,7 @@ function LiveblocksRoomShell({ children }: { children: React.ReactNode }) {
   return children
 }
 
-function WorkspaceFlowCanvas() {
+const WorkspaceFlowCanvas = forwardRef<WorkspaceCanvasClientHandle>(function WorkspaceFlowCanvas(_, ref) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } = useLiveblocksFlow<CanvasNode, CanvasEdge>({
     suspense: true,
     nodes: { initial: [] },
@@ -85,6 +102,80 @@ function WorkspaceFlowCanvas() {
   const rfRef = useRef<ReactFlowInstance<CanvasNode, CanvasEdge> | null>(null)
   const dropCounterRef = useRef(0)
 
+  const undo = useUndo()
+  const redo = useRedo()
+  const canUndo = useCanUndo()
+  const canRedo = useCanRedo()
+
+  const [starterTemplatesOpen, setStarterTemplatesOpen] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    openStarterTemplates: () => setStarterTemplatesOpen(true),
+  }))
+
+  const handleImportTemplate = useCallback(
+    (template: CanvasTemplate) => {
+      const edgeRemovals = edges.map((e) => ({ type: "remove" as const, id: e.id }))
+      const nodeRemovals = nodes.map((n) => ({ type: "remove" as const, id: n.id }))
+      onEdgesChange(edgeRemovals)
+      onNodesChange(nodeRemovals)
+
+      const nodeAdds = template.nodes.map((item) => ({ type: "add" as const, item }))
+      const edgeAdds = template.edges.map((item) => ({ type: "add" as const, item }))
+      onNodesChange(nodeAdds)
+      onEdgesChange(edgeAdds)
+
+      window.setTimeout(() => {
+        void rfRef.current?.fitView({
+          duration: CANVAS_ZOOM_ANIMATION_MS,
+          padding: 0.18,
+        })
+      }, 0)
+    },
+    [edges, nodes, onEdgesChange, onNodesChange],
+  )
+
+  useKeyboardShortcuts(rfRef, undo, redo)
+
+  const handleZoomOut = useCallback(() => {
+    rfRef.current?.zoomOut({ duration: CANVAS_ZOOM_ANIMATION_MS })
+  }, [])
+  const handleZoomIn = useCallback(() => {
+    rfRef.current?.zoomIn({ duration: CANVAS_ZOOM_ANIMATION_MS })
+  }, [])
+  const handleFitView = useCallback(() => {
+    void rfRef.current?.fitView({ duration: CANVAS_ZOOM_ANIMATION_MS })
+  }, [])
+
+  const [shapeDragPreview, setShapeDragPreview] = useState<ShapeDragPayload | null>(null)
+  const [shapeDragPreviewScreen, setShapeDragPreviewScreen] = useState<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    if (!shapeDragPreview) return
+
+    const onDragOver = (event: DragEvent) => {
+      event.preventDefault()
+      setShapeDragPreviewScreen({ x: event.clientX, y: event.clientY })
+    }
+
+    const endPreview = () => {
+      setShapeDragPreview(null)
+      setShapeDragPreviewScreen(null)
+    }
+
+    window.addEventListener("dragover", onDragOver)
+    window.addEventListener("dragend", endPreview)
+    return () => {
+      window.removeEventListener("dragover", onDragOver)
+      window.removeEventListener("dragend", endPreview)
+    }
+  }, [shapeDragPreview])
+
+  const handleShapeDragPreviewStart = useCallback((payload: ShapeDragPayload, event: React.DragEvent<HTMLButtonElement>) => {
+    setShapeDragPreview(payload)
+    setShapeDragPreviewScreen({ x: event.clientX, y: event.clientY })
+  }, [])
+
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
@@ -93,6 +184,8 @@ function WorkspaceFlowCanvas() {
   const handleDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault()
+      setShapeDragPreview(null)
+      setShapeDragPreviewScreen(null)
       const instance = rfRef.current
       if (!instance) return
 
@@ -162,6 +255,9 @@ function WorkspaceFlowCanvas() {
     className: "bg-base",
   }
 
+  const previewStroke = "var(--border-default)"
+  const previewStrokeW = 2
+
   return (
     <div
       className='relative h-full min-h-0 w-full'
@@ -169,40 +265,69 @@ function WorkspaceFlowCanvas() {
       onDragOverCapture={handleDragOver}
       onDrop={handleDrop}
     >
+      {shapeDragPreview && shapeDragPreviewScreen ? (
+        <div
+          className='pointer-events-none fixed z-[10000]'
+          style={{
+            left: shapeDragPreviewScreen.x,
+            top: shapeDragPreviewScreen.y,
+            transform: "translate(-50%, -50%)",
+            width: shapeDragPreview.width,
+            height: shapeDragPreview.height,
+            opacity: 0.72,
+          }}
+          aria-hidden
+        >
+          <CanvasShapeSurface
+            shape={shapeDragPreview.shape}
+            width={shapeDragPreview.width}
+            height={shapeDragPreview.height}
+            fill={DEFAULT_NODE_COLOR_PAIR.fill}
+            stroke={previewStroke}
+            strokeWidth={previewStrokeW}
+          />
+        </div>
+      ) : null}
+      <StarterTemplatesModal
+        open={starterTemplatesOpen}
+        onOpenChange={setStarterTemplatesOpen}
+        onImport={handleImportTemplate}
+      />
       <ReactFlow {...flowProps}>
         <Background color='var(--border-subtle)' gap={20} size={1.25} variant={BackgroundVariant.Dots} />
-        <MiniMap
-          className='border! border-surface-border! rounded-xl! bg-elevated/95!'
-          maskColor='rgba(8, 8, 9, 0.65)'
-          nodeBorderRadius={0}
-          nodeStrokeWidth={2}
-          nodeColor={(node) => {
-            const n = node as CanvasNode
-            return n.data?.color ?? DEFAULT_NODE_COLOR_PAIR.fill
-          }}
-          nodeStrokeColor={(node) => (node.selected ? "var(--accent-primary)" : "var(--border-default)")}
-          nodeComponent={CanvasMiniMapNode}
-        />
+        <Panel position='bottom-left' className='mb-24 ml-4'>
+          <CanvasControlBar
+            onZoomOut={handleZoomOut}
+            onFitView={handleFitView}
+            onZoomIn={handleZoomIn}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+          />
+        </Panel>
         <Panel position='bottom-center' className='mb-6'>
-          <CanvasShapePanel />
+          <CanvasShapePanel onShapeDragPreviewStart={handleShapeDragPreviewStart} />
         </Panel>
       </ReactFlow>
     </div>
   )
-}
+})
 
-export function WorkspaceCanvasClient({ roomId, className }: WorkspaceCanvasClientProps) {
-  return (
-    <div className={cn("relative h-full min-h-0 w-full overflow-hidden", className)}>
-      <LiveblocksProvider authEndpoint='/api/liveblocks-auth'>
-        <RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
-          <LiveblocksRoomShell>
-            <ClientSideSuspense fallback={<CanvasLoadingState />}>
-              <WorkspaceFlowCanvas />
-            </ClientSideSuspense>
-          </LiveblocksRoomShell>
-        </RoomProvider>
-      </LiveblocksProvider>
-    </div>
-  )
-}
+export const WorkspaceCanvasClient = forwardRef<WorkspaceCanvasClientHandle, WorkspaceCanvasClientProps>(
+  function WorkspaceCanvasClient({ roomId, className }, ref) {
+    return (
+      <div className={cn("relative h-full min-h-0 w-full overflow-hidden", className)}>
+        <LiveblocksProvider authEndpoint='/api/liveblocks-auth'>
+          <RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
+            <LiveblocksRoomShell>
+              <ClientSideSuspense fallback={<CanvasLoadingState />}>
+                <WorkspaceFlowCanvas ref={ref} />
+              </ClientSideSuspense>
+            </LiveblocksRoomShell>
+          </RoomProvider>
+        </LiveblocksProvider>
+      </div>
+    )
+  },
+)

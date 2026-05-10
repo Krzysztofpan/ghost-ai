@@ -15,6 +15,34 @@ type SurfaceProps = {
   className?: string
 }
 
+const RECT_RADIUS_PX = 12
+
+function cssShapeBox(
+  className: string | undefined,
+  w: number,
+  h: number,
+  fill: string,
+  stroke: string,
+  strokeWidth: number,
+  borderRadius: number | string,
+) {
+  return (
+    <div
+      className={cn("box-border shrink-0 select-none", className)}
+      style={{
+        width: w,
+        height: h,
+        backgroundColor: fill,
+        borderWidth: strokeWidth,
+        borderStyle: "solid",
+        borderColor: stroke,
+        borderRadius,
+      }}
+      aria-hidden
+    />
+  )
+}
+
 /** Flat-top hexagon corners in unit space [0,1]×[0,1], scaled to width/height. */
 function hexagonPointsFlatTop(w: number, h: number): string {
   const pts: [number, number][] = [
@@ -51,47 +79,14 @@ export function CanvasShapeSurface({ shape, width: w, height: h, fill, stroke, s
 
   switch (shape) {
     case "rectangle":
-      return (
-        <svg width={w} height={h} className={common} aria-hidden>
-          <rect
-            x={strokeWidth / 2}
-            y={strokeWidth / 2}
-            width={w - strokeWidth}
-            height={h - strokeWidth}
-            rx={12}
-            ry={12}
-            fill={fill}
-            {...strokeOpts}
-          />
-        </svg>
-      )
+      return cssShapeBox(common, w, h, fill, stroke, strokeWidth, RECT_RADIUS_PX)
 
-    case "circle": {
-      const rx = w / 2 - strokeWidth / 2
-      const ry = h / 2 - strokeWidth / 2
-      return (
-        <svg width={w} height={h} className={common} aria-hidden>
-          <ellipse cx={w / 2} cy={h / 2} rx={Math.max(rx, 0)} ry={Math.max(ry, 0)} fill={fill} {...strokeOpts} />
-        </svg>
-      )
-    }
+    case "circle":
+      return cssShapeBox(common, w, h, fill, stroke, strokeWidth, "50%")
 
     case "pill": {
-      const r = Math.min(h / 2 - strokeWidth / 2, w / 2 - strokeWidth / 2)
-      return (
-        <svg width={w} height={h} className={common} aria-hidden>
-          <rect
-            x={strokeWidth / 2}
-            y={strokeWidth / 2}
-            width={w - strokeWidth}
-            height={h - strokeWidth}
-            rx={Math.max(r, 0)}
-            ry={Math.max(r, 0)}
-            fill={fill}
-            {...strokeOpts}
-          />
-        </svg>
-      )
+      const r = Math.min(w / 2, h / 2)
+      return cssShapeBox(common, w, h, fill, stroke, strokeWidth, Math.max(r, 0))
     }
 
     case "diamond": {

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Bot, Share2 } from "lucide-react"
+import { useRef, useState } from "react"
+import { Bot, LayoutTemplate, Share2 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
@@ -9,7 +9,7 @@ import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
-import { WorkspaceCanvasClient } from "@/components/editor/workspace-canvas-client"
+import { WorkspaceCanvasClient, type WorkspaceCanvasClientHandle } from "@/components/editor/workspace-canvas-client"
 import { Button } from "@/components/ui/button"
 import type { ProjectSidebarData } from "@/lib/project-data"
 import { cn } from "@/lib/utils"
@@ -33,6 +33,7 @@ export function WorkspaceShellClient({
 }: WorkspaceShellClientProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true)
+  const canvasRef = useRef<WorkspaceCanvasClientHandle>(null)
   const { dialog, formName, setFormName, roomId: nextRoomId, isSubmitting, openCreate, openRename, openDelete, close, submitCreate, submitRename, submitDelete } = useProjectActions()
   const shareDialog = useShareDialog(roomId, canManageAccess)
 
@@ -43,6 +44,17 @@ export function WorkspaceShellClient({
           <h1 className='truncate text-sm font-semibold text-copy-primary'>{projectName}</h1>
         </div>
         <div className='flex items-center gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            className='gap-1.5'
+            aria-label='Open starter templates'
+            onClick={() => canvasRef.current?.openStarterTemplates()}
+          >
+            <LayoutTemplate className='h-3.5 w-3.5' />
+            Templates
+          </Button>
           <Button
             type='button'
             variant='outline'
@@ -72,7 +84,7 @@ export function WorkspaceShellClient({
 
         <section className='flex min-h-0 flex-1 bg-base px-6 py-6 transition-all duration-300 ease-out'>
           <div className='relative flex min-h-0 w-full flex-1 overflow-hidden rounded-3xl border border-surface-border bg-surface/40'>
-            <WorkspaceCanvasClient roomId={roomId} className='min-h-[min(640px,calc(100vh-8rem))]' />
+            <WorkspaceCanvasClient ref={canvasRef} roomId={roomId} className='min-h-[min(640px,calc(100vh-8rem))]' />
           </div>
         </section>
 

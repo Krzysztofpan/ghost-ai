@@ -33,11 +33,26 @@ function payloadForShape(shape: NodeShape): ShapeDragPayload {
   return { shape, width, height }
 }
 
-export function CanvasShapePanel({ className }: { className?: string }) {
+function setInvisibleDragImage(event: DragEvent) {
+  const canvas = document.createElement("canvas")
+  canvas.width = 1
+  canvas.height = 1
+  event.dataTransfer.setDragImage(canvas, 0, 0)
+}
+
+export function CanvasShapePanel({
+  className,
+  onShapeDragPreviewStart,
+}: {
+  className?: string
+  onShapeDragPreviewStart?: (payload: ShapeDragPayload, event: DragEvent<HTMLButtonElement>) => void
+}) {
   function handleDragStart(shape: NodeShape, event: DragEvent<HTMLButtonElement>) {
     const payload = payloadForShape(shape)
     event.dataTransfer.setData(CANVAS_SHAPE_DRAG_MIME, JSON.stringify(payload))
     event.dataTransfer.effectAllowed = "copy"
+    setInvisibleDragImage(event)
+    onShapeDragPreviewStart?.(payload, event)
   }
 
   return (

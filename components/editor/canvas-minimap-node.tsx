@@ -19,8 +19,8 @@ function CanvasMiniMapNodeImpl(props: MiniMapNodeProps) {
   )
 
   const fill = color ?? "#1F1F1F"
-  const stroke = selected ? "var(--accent-primary)" : (strokeColor ?? "var(--border-default)")
-  const sw = selected ? Math.max(strokeWidth, 2.5) : strokeWidth
+  const stroke = selected ? "var(--accent-primary)" : (strokeColor ?? "var(--border-subtle)")
+  const sw = selected ? Math.max(strokeWidth, 2.5) : Math.min(strokeWidth, 1.5)
 
   return (
     <g>

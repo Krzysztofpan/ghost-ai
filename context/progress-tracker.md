@@ -87,6 +87,32 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added `lib/canvas-handle-layout.ts`: per-shape cardinal anchors on the real outline (ellipse for circles, hex flat edges, cylinder rim/sides, etc.) with pixel-precise `Handle` styles (`translate(-50%,-50%)`) so dots sit on the silhouette instead of the bounding box edges.
   - Updated `components/editor/canvas-node.tsx`: stacked `source` + `target` handle pair per side (`{side}-source` / `{side}-target`) so multiple edges can attach to the same visual dot and flows work with `ConnectionMode.Loose`.
   - Updated `components/editor/workspace-canvas-client.tsx`: `isValidConnection` blocks same-node edges; `connectionRadius={28}` improves snapping to the nearest handle when dropping nearby.
+- Feature spec `13-node-shape` implemented:
+  - Updated `components/editor/canvas-shape-surface.tsx`: `rectangle`, `pill`, and `circle` render via CSS (`box-border`, fill, border, radius); `diamond`, `hexagon`, and `cylinder` remain scalable SVG.
+  - Updated `components/editor/canvas-node.tsx`: subtler default outline (`--border-subtle`, thinner stroke) and brighter accent outline when selected.
+  - Added shape drag ghost preview in `components/editor/workspace-canvas-client.tsx` (cursor-centered overlay using `CanvasShapeSurface`, cleared on drop/`dragend`); `components/editor/canvas-shape-panel.tsx` uses an invisible native drag image and `onShapeDragPreviewStart` callback only.
+  - Aligned MiniMap idle stroke color with `--border-subtle` in `workspace-canvas-client.tsx` and `canvas-minimap-node.tsx`.
+  - Documented main-canvas vs SVG shape rendering in `context/ui-context.md`.
+- Feature spec `14-node-editing` implemented:
+  - Extended `types/canvas.ts` with `CANVAS_NODE_MIN_WIDTH` / `CANVAS_NODE_MIN_HEIGHT` enforced via React Flow `NodeResizer`.
+  - Updated `components/editor/canvas-node.tsx`: subtle resize handles/lines when selected; centered label with muted placeholder when empty; double-click opens centered textarea overlay; live label updates via `updateNodeData` (same store path as Liveblocks sync); blur/Escape ends editing; `nodrag` / `nopan` / `nowheel` on the edit layer; connection handles rendered after the label overlay so wires stay attachable.
+- Feature spec `15-nodes-color-toolbar` implemented:
+  - Extended `NODE_COLORS` in `types/canvas.ts` with `label` strings for toolbar accessibility (aligned with `context/ui-context.md` palette names).
+  - Updated `components/editor/canvas-node.tsx`: floating color toolbar above the node when selected (`nodrag` / `nopan`, pointer capture stopped so canvas does not pan or drag); one swatch per predefined fill/text pair; active swatch uses a double ring keyed to the pair’s text color; hover uses a tight `box-shadow` from the text color via `color-mix`; swatch clicks call `updateNodeData` with the palette fill so paired label colors follow `textColorForFill` immediately in collaborative state.
+- Canvas connection removal (per-handle unlink):
+  - Updated `components/editor/canvas-node.tsx`: when a node is selected, connection dots on sides that have edges stay visible; a trash affordance appears offset from each busy handle and removes all edges attached to that handle via `deleteElements` (same path as keyboard delete, Liveblocks `onDelete`). Uses `getNodeConnections({ nodeId })` so loose-mode handle pairing stays correct; fallback trash control at bottom when edges cannot be mapped to a cardinal handle id.
+- Feature spec `16-canvas-ergonomics` implemented:
+  - Added `components/editor/canvas-control-bar.tsx`: bottom-left pill toolbar (`nopan`/`nodrag`) with zoom out / fit view / zoom in, divider, undo / redo; React Flow `zoomIn`/`zoomOut`/`fitView` use `duration: CANVAS_ZOOM_ANIMATION_MS` (280ms).
+  - Wired undo/redo to `useUndo` / `useRedo` and disabled dimmed states via `useCanUndo` / `useCanRedo` from `@liveblocks/react`.
+  - Added `hooks/use-keyboard-shortcuts.ts`: window `keydown` for `+`/`=`, `-`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Cmd/Ctrl+Y`; skips shortcuts when focus is in `input`, `textarea`, or contenteditable; exports `CANVAS_ZOOM_ANIMATION_MS`.
+  - Updated `components/editor/workspace-canvas-client.tsx`: mounts control bar `Panel`, registers shortcuts; removed bottom-right `MiniMap` (`components/editor/canvas-minimap-node.tsx` retained but unused).
+  - Verified with `npm run build`.
+- Feature spec `17-started-template` implemented:
+  - Added `components/editor/starter-templates.ts` with `CanvasTemplate`, `CANVAS_TEMPLATES` (microservices, CI/CD pipeline, event-driven), `canvasEdge` + `templateNode` helpers, and palette-aligned `CanvasNode` / `CanvasEdge` data using shared canvas types.
+  - Added `components/editor/starter-templates-modal.tsx`: dialog with scrollable grid of cards (preview, name, description, per-card Import), lightweight diagram previews (bounds-fit viewport, center-connected edges, `CanvasShapeSurface` nodes).
+  - Updated `components/editor/workspace-canvas-client.tsx`: `forwardRef` + `WorkspaceCanvasClientHandle.openStarterTemplates`, import clears edges/nodes via Liveblocks `onEdgesChange` / `onNodesChange` then applies template graph and `fitView` after load.
+  - Updated `components/editor/workspace-shell-client.tsx`: workspace header `Templates` control wired to canvas ref.
+  - Verified with `npm run build`.
 
 ## In Progress
 
@@ -94,7 +120,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Add shared cursors, canvas controls, and persistence when specified in the next feature units.
+- Add shared cursors and persistence when specified in the next feature units.
 
 ## Open Questions
 
@@ -156,3 +182,14 @@ Update this file whenever the current phase, active feature, or implementation s
 - Implemented `12-shape-panel`: bottom-center floating shape toolbar with drag payloads, canvas drop → Liveblocks `onNodesChange` add, `canvasNode` type + basic node view; verified with `npm run build`.
 - Addressed `context/current-issue.md`: each dropped shape renders with its own geometry on the canvas and in the MiniMap (correct relative sizes and fills); verified with `npm run build` and `npm run lint`.
 - Addressed `context/current-issue.md` (handles/wires): outline-aligned connection dots per shape, paired source/target handles, no self-connections, tuned connection snap radius; verified with `npm run build` and `npm run lint`.
+- Implemented `13-node-shape`: CSS node surfaces for rectangle/pill/circle, SVG for diamond/hexagon/cylinder, subtle vs selected borders, shape-drag ghost preview; verified with `npm run build`.
+- Implemented `14-node-editing`: NodeResizer with minimum dimensions, inline textarea label editing with collaborative `updateNodeData`, Escape/blur close, interaction classes to avoid canvas pan/drag/zoom while typing; verified with `npm run build`.
+- Adjusted canvas label edit overlay to auto-fit textarea height (was fixed four rows) so edited text stays vertically centered like view mode; verified with `npm run build`.
+- Implemented `15-nodes-color-toolbar`: predefined palette swatches above selected nodes, Liveblocks-safe `updateNodeData` color updates, interaction classes to avoid canvas pan/drag; verified with `npm run build`.
+- Added per-handle connection removal on selected canvas nodes (`Trash2` + `deleteElements`, `getNodeConnections` bucketing + bottom fallback); fixed color-toolbar hover lint by scoping hover glow to selected nodes only; verified with `eslint` on `canvas-node.tsx`.
+- Implemented `16-canvas-ergonomics`: floating zoom/history toolbar, Liveblocks undo/redo, keyboard shortcuts hook, minimap removed; verified with `npm run build`.
+- Implemented `17-started-template`: static starter template library, import modal with diagram previews, replace-canvas import through Liveblocks flow mutations + fit view, workspace header entry point; verified with `npm run build`.
+- Project sidebar: entire project row opens `/editor/{projectId}` on click (not only the title); rename/delete buttons still isolated via event targeting; keyboard Enter/Space on the row when focused.
+- Fixed canvas disconnect controls so removal buttons sit on node chrome outside the shape fill (shape layer `absolute`/`z-0`, larger outward offsets, orphan fallback below the node box instead of `bottom-2` on the fill); verified with `npm run build`.
+- Fixed starter-template imports showing a single bottom disconnect control: template edges omit handle ids, so disconnect placement now infers cardinal side from node center positions (`inferEdgeAttachmentSide`); verified with `npm run build`.
+- Aligned disconnect placement with rendered edges: missing-handle edges now use `getEdgePosition` (same handle selection as React Flow); geometric fallback uses ray–bbox exit instead of dominant center deltas; verified with `npm run build`.

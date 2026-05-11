@@ -2,8 +2,10 @@
 
 import { UserButton, useUser } from "@clerk/nextjs"
 import { useOther, useOthersConnectionIds, useOthersMapped } from "@liveblocks/react"
+import { Bot, Loader2 } from "lucide-react"
 import { ViewportPortal } from "@xyflow/react"
 
+import { DESIGN_AGENT_USER_ID } from "@/lib/design-agent/constants"
 import { cn } from "@/lib/utils"
 
 const MAX_VISIBLE_COLLABORATORS = 5
@@ -13,6 +15,7 @@ interface CollaboratorPresence {
   name: string
   avatar: string
   color: string
+  thinking: boolean
 }
 
 interface CursorPresence extends CollaboratorPresence {
@@ -43,7 +46,8 @@ function collaboratorPresenceEqual(prev: CollaboratorPresence, next: Collaborato
     prev.id === next.id &&
     prev.name === next.name &&
     prev.avatar === next.avatar &&
-    prev.color === next.color
+    prev.color === next.color &&
+    prev.thinking === next.thinking
   )
 }
 
@@ -51,24 +55,29 @@ function cursorPresenceEqual(prev: CursorPresence, next: CursorPresence): boolea
   return (
     collaboratorPresenceEqual(prev, next) &&
     prev.cursor?.x === next.cursor?.x &&
-    prev.cursor?.y === next.cursor?.y
+    prev.cursor?.y === next.cursor?.y &&
+    prev.thinking === next.thinking
   )
 }
 
 function CollaboratorAvatar({ collaborator, className }: { collaborator: CollaboratorPresence; className?: string }) {
   const sanitizedAvatar = sanitizeAvatarUrl(collaborator.avatar)
   const label = collaborator.name || "Collaborator"
+  const isAi = collaborator.id === DESIGN_AGENT_USER_ID
 
   return (
     <div
       aria-label={label}
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-surface-border bg-subtle text-xs font-semibold text-copy-secondary ring-2 ring-surface shadow-[0_8px_18px_rgba(0,0,0,0.32)]",
+        "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-surface-border bg-subtle text-xs font-semibold text-copy-secondary shadow-[0_8px_18px_rgba(0,0,0,0.32)]",
+        collaborator.thinking ? "ring-2 ring-brand ring-offset-2 ring-offset-surface" : "ring-2 ring-surface",
         className,
       )}
       title={label}
     >
-      {sanitizedAvatar ? (
+      {isAi ? (
+        <Bot className='h-4 w-4 text-accent-ai-text' aria-hidden />
+      ) : sanitizedAvatar ? (
         <img src={sanitizedAvatar} alt='' className='h-full w-full object-cover' draggable={false} />
       ) : (
         initialsForName(label)
@@ -84,6 +93,7 @@ function ParticipantAvatarGroup({ currentUserId }: { currentUserId: string | nul
       name: other.info.name,
       avatar: other.info.avatar,
       color: other.info.color,
+      thinking: Boolean(other.presence.thinking),
     }),
     collaboratorPresenceEqual,
   )
@@ -127,6 +137,7 @@ function LiveCursor({ connectionId, currentUserId }: { connectionId: number; cur
       avatar: other.info.avatar,
       color: other.info.color,
       cursor: other.presence.cursor,
+      thinking: Boolean(other.presence.thinking),
     }),
     cursorPresenceEqual,
   )
@@ -161,10 +172,13 @@ function LiveCursor({ connectionId, currentUserId }: { connectionId: number; cur
         />
       </svg>
       <div
-        className='ml-4 -mt-1 rounded-xl px-2 py-1 text-xs font-medium text-background shadow-[0_8px_18px_rgba(0,0,0,0.35)]'
+        className='ml-4 -mt-1 inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-xs font-medium text-background shadow-[0_8px_18px_rgba(0,0,0,0.35)]'
         style={{ backgroundColor: participant.color }}
       >
-        {name}
+        <span>{name}</span>
+        {participant.thinking ? (
+          <Loader2 className='h-3 w-3 shrink-0 animate-spin opacity-95' aria-label='Thinking' />
+        ) : null}
       </div>
     </div>
   )

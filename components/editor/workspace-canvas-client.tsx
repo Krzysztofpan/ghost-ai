@@ -1,7 +1,7 @@
 "use client"
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { ClientSideSuspense, LiveblocksProvider, RoomProvider, useCanRedo, useCanUndo, useErrorListener, useRedo, useUndo, useUpdateMyPresence } from "@liveblocks/react"
+import { ClientSideSuspense, useCanRedo, useCanUndo, useErrorListener, useRedo, useUndo, useUpdateMyPresence } from "@liveblocks/react"
 import { useLiveblocksFlow } from "@liveblocks/react-flow"
 import { Background, BackgroundVariant, ConnectionMode, Panel, ReactFlow, type IsValidConnection, type ReactFlowInstance, type ReactFlowProps } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
@@ -50,7 +50,7 @@ function CanvasLoadingState() {
   )
 }
 
-function LiveblocksRoomShell({ children }: { children: React.ReactNode }) {
+export function LiveblocksRoomShell({ children }: { children: React.ReactNode }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useErrorListener(
@@ -407,15 +407,9 @@ const WorkspaceFlowCanvas = forwardRef<WorkspaceCanvasClientHandle, WorkspaceFlo
 export const WorkspaceCanvasClient = forwardRef<WorkspaceCanvasClientHandle, WorkspaceCanvasClientProps>(function WorkspaceCanvasClient({ roomId, className, onAutosaveStatusChange }, ref) {
   return (
     <div className={cn("relative h-full min-h-0 w-full overflow-hidden", className)}>
-      <LiveblocksProvider authEndpoint='/api/liveblocks-auth'>
-        <RoomProvider id={roomId} initialPresence={{ cursor: null, thinking: false }}>
-          <LiveblocksRoomShell>
-            <ClientSideSuspense fallback={<CanvasLoadingState />}>
-              <WorkspaceFlowCanvas ref={ref} projectId={roomId} onAutosaveStatusChange={onAutosaveStatusChange} />
-            </ClientSideSuspense>
-          </LiveblocksRoomShell>
-        </RoomProvider>
-      </LiveblocksProvider>
+      <ClientSideSuspense fallback={<CanvasLoadingState />}>
+        <WorkspaceFlowCanvas ref={ref} projectId={roomId} onAutosaveStatusChange={onAutosaveStatusChange} />
+      </ClientSideSuspense>
     </div>
   )
 })

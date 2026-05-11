@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- In progress
+- Ready for next feature work.
 
 ## Current Goal
 
-- Wire backend AI generation and Trigger.dev persistence when specified.
+- Next product priority as needed.
 
 ## Completed
 
@@ -139,6 +139,52 @@ Update this file whenever the current phase, active feature, or implementation s
   - Removed `md:pl-80` canvas shrink and inset padding/card wrapper in `workspace-shell-client.tsx` so the canvas uses the full width below the navbar.
   - Project sidebar and AI workspace panel remain fixed overlays above the canvas; AI panel aligned to `top-14` / `bottom-0` with a subtle `rounded-l-2xl` window edge.
   - Verified with `npm run build`.
+- Feature spec `22-design-agent-api` implemented:
+  - Prisma `TaskRun` model (`runId` unique, `projectId`, `userId`, `createdAt`, compound index `userId` + `projectId`) and migration `20260510191416_add_task_run`.
+  - `POST /api/ai/design`: validates `prompt` / `roomId` / `projectId`, enforces `roomId === projectId`, Clerk + `getProjectAccess`, triggers Trigger.dev task `design-agent`, persists `TaskRun`, returns `{ runId }`.
+  - `POST /api/ai/design/token`: verifies `TaskRun` ownership by `runId` + Clerk `userId`, returns Trigger.dev public token scoped to that run (`read.runs`).
+  - `src/trigger/design-agent.ts`: minimal `design-agent` task (logs payload only; no AI).
+  - Prisma client aligned with v7 `prisma-client` generator: `output = "../generated/prisma"`, imports from `@/generated/prisma/client`, Accelerate via `accelerateUrl`, TCP via `PrismaPg` adapter; `postinstall` runs `prisma generate`; `.gitignore` includes `/generated/prisma`.
+- Feature spec `23-design-agent-logic` implemented:
+  - `src/trigger/design-agent.ts`: design plan + Liveblocks application; feed + presence; Trigger metadata `phase`.
+  - `lib/design-agent/generate-design-plan.ts`: `generateText` + `submit_design_plan` tool + Zod; default LLM is **OpenRouter** (`OPENROUTER_API_KEY`, default model `openrouter/free`; optional `OPENROUTER_MODEL`); optional Gemini via `DESIGN_AGENT_LLM=google` + `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY`.
+  - `lib/design-agent/design-llm.ts`: provider selection for the design agent.
+  - `lib/design-agent/*`: constants, schema, `apply-design-plan`, `read-flow-snapshot`, `validate-actions`.
+  - `app/api/liveblocks-auth/route.ts`: grants `feeds:write` alongside full room access so clients can read feed messages.
+  - `components/editor/workspace-shell-client.tsx`: `LiveblocksProvider` + `RoomProvider` wrap project sidebar, canvas, and AI sidebar (single room context).
+  - `components/editor/workspace-canvas-client.tsx`: exports `LiveblocksRoomShell`; canvas is suspense-only inside the shared room.
+  - `components/editor/ai-workspace-sidebar.tsx`: `roomId` prop, `useFeedMessages` / `useCreateFeed` for shared activity strip (design trigger wiring superseded by feature `25-sidebar-chat-feed`).
+  - `components/editor/canvas-presence-overlay.tsx`: AI avatar (`ghost-ai-agent`), thinking ring / cursor label state.
+  - Verified with `npm run build`.
+- Feature spec `24-ai-presence-state` implemented:
+  - `types/tasks.ts`: `AI_STATUS_FEED_ID` (`ai-status-feed`), Zod `aiStatusFeedPayloadSchema` with optional `text` (plus legacy `message`), `parseAiStatusFeedPayload`, `isAiGenerationPhaseActive`.
+  - Shared Liveblocks feed renamed to `ai-status-feed`; `lib/design-agent/constants.ts` re-exports feed id; `src/trigger/design-agent.ts` posts `text` + optional `kind: "design"`.
+  - `components/editor/ai-workspace-sidebar.tsx`: validates feed payloads; shows latest status only; header “AI working” chip when phase is `start`/`processing` (chat composer behavior updated in feature `25-sidebar-chat-feed`).
+  - `components/editor/canvas-presence-overlay.tsx`: `Loader2` spinner in live cursor name badge when `thinking` is true.
+  - Verified with `npm run build`.
+- Feature spec `25-sidebar-chat-feed` implemented:
+  - `types/tasks.ts`: `AI_CHAT_FEED_ID` (`ai-chat`), Zod `aiChatFeedPayloadSchema` (`sender`, `role`, `content`, `timestamp`), `parseAiChatFeedPayload`.
+  - `components/editor/ai-workspace-sidebar.tsx`: room-scoped `ai-chat` feed (`useCreateFeed`, `useFeedMessages`, `useCreateFeedMessage`) separate from `ai-status-feed`; validated ordered chat list with sender, time, content; Clerk display name for outbound messages; composer clears on success; send error line on failure; no `/api/ai/design` from sidebar (per scope).
+  - Verified with `npm run build`.
+- Feature spec `26-design-agent-frontend` implemented:
+  - `components/editor/ai-workspace-sidebar.tsx`: submit posts user line to `ai-chat`, `POST /api/ai/design` + `POST /api/ai/design/token`, `useRealtimeRun` with public token; composer + green send button locked with spinner while run is active; compact status strip above composer (latest `ai-status-feed` line + pulse) only during active runs; user bubbles `#62C073` / assistant elevated dark; API and subscription failures as assistant chat lines; completion posts final assistant summary from run output; canvas unchanged client-side (Liveblocks-only updates).
+  - Verified with `npm run build`.
+- Feature spec `27-spec-generation-flow` implemented:
+  - `lib/spec-agent/schema.ts`: Zod `specGenerationRequestSchema` (`roomId`, `chatHistory`, `nodes`, `edges`) and `generateSpecPayloadSchema` (adds `projectId` with `projectId === roomId` refine); chat rows reuse `aiChatFeedPayloadSchema`.
+  - `POST /api/ai/spec`: Clerk session, `getProjectAccess` from `roomId` only (no client `projectId`), triggers Trigger.dev `generate-spec`, persists `TaskRun`, returns `{ runId }`.
+  - `POST /api/ai/spec/token`: `TaskRun` ownership check, public access token scoped to the run, `1h` expiry.
+  - `src/trigger/generate-spec.ts`: `generateSpec` task — Gemini via `@ai-sdk/google` (`gemini-2.5-flash`, `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY`), `generateText` Markdown spec from canvas + chat, Trigger metadata `phase` / `status`, output `{ markdown }`.
+  - Verified with `npm run build`.
+- Feature spec `28-spec-persistence-download` implemented:
+  - Prisma `ProjectSpec` model (`id`, `projectId`, `filePath`, `createdAt`) with cascade delete from `Project`; migration `20260510211258_add_project_spec`.
+  - `src/trigger/generate-spec.ts`: after generation, uploads Markdown to Vercel Blob (`specs/{projectId}/{specId}.md`, private), persists `ProjectSpec.filePath`; task output `{ markdown, specId }`.
+  - `GET /api/projects/[projectId]/specs/[specId]/download`: Clerk auth, `getProjectAccess`, loads spec by id + project, reads blob via stored URL (private `get`), returns `text/markdown` attachment `spec-{specId}.md`; `404` / `403` / `401` as appropriate.
+  - Verified with `npm run build`.
+- Feature spec `29-spec-ui-integration` implemented:
+  - `GET /api/projects/[projectId]/specs`: authenticated project access, returns `{ specs: { id, createdAt, filename }[] }` (`filename` is `spec-{id}.md`, newest first).
+  - `components/editor/ai-workspace-sidebar.tsx`: Specs tab loads the list when the tab is active; compact scrollable rows (created date + filename); preview `Dialog` + `ScrollArea` fetches markdown via the existing download route (no direct Blob URLs); list row + modal **Download** uses the same endpoint with a browser file save; `react-markdown` + `remark-gfm` for preview styling; preview state cleared on close.
+  - **Generate Spec** wired: `useLiveblocksFlow` (non-suspense) snapshots nodes/edges + `ai-chat` history → `POST /api/ai/spec` → `POST /api/ai/spec/token` → `useRealtimeRun` (`generate-spec`); status strip + disabled button while running; assistant chat line + spec list refresh on success; inline error on failure.
+  - Verified with `npm run build`.
 
 ## In Progress
 
@@ -146,7 +192,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Wire backend AI generation and Trigger.dev workflows when specified.
+- None required from recent spec work; pick next feature from product backlog.
 
 ## Open Questions
 
@@ -221,4 +267,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Aligned disconnect placement with rendered edges: missing-handle edges now use `getEdgePosition` (same handle selection as React Flow); geometric fallback uses ray–bbox exit instead of dominant center deltas; verified with `npm run build`.
 - Implemented `18-presence-avatars-cursor`: canvas-only collaborator avatar stack, current-user Clerk `UserButton` in the canvas overlay, Liveblocks cursor broadcast on React Flow mouse movement, live cursor rendering for other participants, and presence type rename to `thinking`; verified with `npm run build`.
 - Implemented `19-ai-sidebar-shell`: extracted AI workspace sidebar UI with tabs, composer, specs demo card, CSS theme aliases for spec tokens, ref-forwarding `Textarea`, and workspace shell wiring; verified with `npm run build`.
+- Implemented `25-sidebar-chat-feed`: Liveblocks `ai-chat` collaborative feed, Zod-validated messages, sidebar subscribe/send separate from `ai-status-feed`; verified with `npm run build`.
 - Implemented `20-canvas-autosave`: Vercel Blob canvas JSON + Prisma URL, canvas GET/PUT APIs, debounced autosave hook, conditional hydrate from blob when the Liveblocks room is empty, header Save + status, build verified.
+- Initialized Trigger.dev v4 (`trigger.dev`, `@trigger.dev/sdk`, `@trigger.dev/build`): repaired corrupted npm/npx caches (`npm cache clean --force`, cleared stale `~/.npm/_npx`), added `trigger.config.ts`, `src/trigger/example.ts`, tsconfig + `.gitignore` entries; CLI runs from project devDependencies to avoid broken global npx extractions.
+- Trigger.dev project wiring: `package.json` scripts `trigger:dev` / `trigger:deploy`; `trigger.config.ts` Prisma `modern` build extension for Prisma 7 + `prisma-client` provider; `trigger deploy --dry-run` verified.

@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { LiveblocksProvider, RoomProvider } from "@liveblocks/react"
 import { AlertCircle, Bot, Check, LayoutTemplate, Loader2, Save, Share2 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
@@ -10,7 +11,7 @@ import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
-import { WorkspaceCanvasClient, type WorkspaceCanvasClientHandle } from "@/components/editor/workspace-canvas-client"
+import { LiveblocksRoomShell, WorkspaceCanvasClient, type WorkspaceCanvasClientHandle } from "@/components/editor/workspace-canvas-client"
 import { Button } from "@/components/ui/button"
 import type { ProjectSidebarData } from "@/lib/project-data"
 import { useProjectActions } from "@/hooks/use-project-actions"
@@ -103,22 +104,28 @@ export function WorkspaceShellClient({
         </div>
       </header>
 
-      <div className='relative flex min-h-0 flex-1 overflow-hidden'>
-        <ProjectSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} activeProjectId={roomId} ownedProjects={ownedProjects} sharedProjects={sharedProjects} onCreateProject={openCreate} onRenameProject={openRename} onDeleteProject={openDelete} />
+      <LiveblocksProvider authEndpoint='/api/liveblocks-auth'>
+        <RoomProvider id={roomId} initialPresence={{ cursor: null, thinking: false }}>
+          <LiveblocksRoomShell>
+            <div className='relative flex min-h-0 flex-1 overflow-hidden'>
+              <ProjectSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} activeProjectId={roomId} ownedProjects={ownedProjects} sharedProjects={sharedProjects} onCreateProject={openCreate} onRenameProject={openRename} onDeleteProject={openDelete} />
 
-        {!isSidebarOpen && (
-          <Button type='button' size='sm' onClick={() => setIsSidebarOpen(true)} className='absolute top-4 left-4 z-30 h-9 rounded-xl border border-brand/40 bg-accent-dim px-3 text-brand shadow-[0_0_0_1px_rgba(0,200,212,0.2),0_10px_24px_rgba(0,0,0,0.45)] hover:bg-accent-dim/80 hover:text-copy-primary'>
-            <span className='mr-1 inline-block h-1.5 w-1.5 rounded-full bg-brand' aria-hidden='true' />
-            Open Projects
-          </Button>
-        )}
+              {!isSidebarOpen && (
+                <Button type='button' size='sm' onClick={() => setIsSidebarOpen(true)} className='absolute top-4 left-4 z-30 h-9 rounded-xl border border-brand/40 bg-accent-dim px-3 text-brand shadow-[0_0_0_1px_rgba(0,200,212,0.2),0_10px_24px_rgba(0,0,0,0.45)] hover:bg-accent-dim/80 hover:text-copy-primary'>
+                  <span className='mr-1 inline-block h-1.5 w-1.5 rounded-full bg-brand' aria-hidden='true' />
+                  Open Projects
+                </Button>
+              )}
 
-        <section className='relative flex min-h-0 min-w-0 flex-1 bg-base'>
-          <WorkspaceCanvasClient ref={canvasRef} roomId={roomId} className='h-full min-h-0 w-full' onAutosaveStatusChange={setCanvasSaveStatus} />
-        </section>
+              <section className='relative flex min-h-0 min-w-0 flex-1 bg-base'>
+                <WorkspaceCanvasClient ref={canvasRef} roomId={roomId} className='h-full min-h-0 w-full' onAutosaveStatusChange={setCanvasSaveStatus} />
+              </section>
 
-        <AiWorkspaceSidebar open={isAiSidebarOpen} onClose={() => setIsAiSidebarOpen(false)} />
-      </div>
+              <AiWorkspaceSidebar roomId={roomId} open={isAiSidebarOpen} onClose={() => setIsAiSidebarOpen(false)} />
+            </div>
+          </LiveblocksRoomShell>
+        </RoomProvider>
+      </LiveblocksProvider>
 
       <CreateProjectDialog open={dialog.type === "create"} onClose={close} name={formName} onNameChange={setFormName} roomId={nextRoomId} isSubmitting={isSubmitting} onSubmit={submitCreate} />
 

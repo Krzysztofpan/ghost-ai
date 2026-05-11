@@ -70,6 +70,7 @@ export async function POST(request: Request) {
   })
 
   session.allow(roomId, session.FULL_ACCESS)
+  session.allow(roomId, ["feeds:write"])
 
   const { status, body } = await session.authorize()
   return new Response(body, { status })

@@ -51,6 +51,7 @@
 
 - Input: user prompt, project context, and current canvas state.
 - Execution: durable background task via Trigger.dev.
+- LLM: default **OpenRouter** (`OPENROUTER_API_KEY`; default model id `openrouter/free`; optional `OPENROUTER_MODEL` for a specific paid/free slug); optional **Google Gemini** when `DESIGN_AGENT_LLM=google` and a Gemini API key is set.
 - Output: structured node and edge updates written into the shared Liveblocks room.
 
 ### Spec Generation
